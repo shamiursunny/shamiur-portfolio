@@ -333,7 +333,7 @@ export default function ProjectsPage() {
                     )}
                   </div>
                   
-                  <div className="flex gap-2">
+                  <div className="flex flex-col gap-2">
                     {project.demo && (
                       <Button variant="outline" size="sm" className="flex-1 gap-2 hover:bg-primary hover:text-primary-foreground transition-all" asChild>
                         <a href={project.demo} target="_blank" rel="noopener noreferrer">
