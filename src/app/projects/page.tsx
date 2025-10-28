@@ -336,14 +336,14 @@ export default function ProjectsPage() {
                   <div className="flex flex-col gap-2">
                     {project.demo && (
                       <Button variant="outline" size="sm" className="flex-1 gap-2 hover:bg-primary hover:text-primary-foreground transition-all" asChild>
-                        <a href={project.demo} target="_blank" rel="noopener noreferrer">
+                        <a href={project.demo}>
                           <Eye className="w-3 h-3" />
                           View {project.title}
                         </a>
                       </Button>
                     )}
                     <Button variant="outline" size="sm" className="flex-1 gap-2 hover:bg-primary hover:text-primary-foreground transition-all" asChild>
-                      <a href={project.github} target="_blank" rel="noopener noreferrer">
+                      <a href={project.github}>
                         <Code className="w-3 h-3" />
                         Source Code
                       </a>
