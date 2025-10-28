@@ -128,7 +128,7 @@ export default function Home() {
             className={`flex flex-wrap ${spacing.gap} justify-center`}
           >
             <Link href="/projects">
-              <Button size="lg" className="bg-card/60 backdrop-blur-md hover:bg-card/80 border-border/30 px-8 py-6 text-lg gap-2 hover-lift focus-ring glass-morphism text-black">
+              <Button size="lg" className="bg-card/60 backdrop-blur-md hover:bg-card/80 border-border/30 px-8 py-6 text-lg gap-2 hover-lift focus-ring glass-morphism text-black dark:text-white">
                 <Code className="w-5 h-5" />
                 View Projects
                 <ArrowRight className="w-4 h-4" />
