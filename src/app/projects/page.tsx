@@ -17,7 +17,7 @@ const projects = [
     tech: ["React", "TypeScript", "Node.js", "PostgreSQL", "JWT", "Redis"],
     category: "FinTech",
     featured: true,
-    github: "https://github.com/shamiur/banking-dashboard",
+    
     demo: "/demos/banking-dashboard",
     image: "/api/placeholder/400/250",
     gradient: "from-blue-500/20 to-purple-500/20"
@@ -29,7 +29,7 @@ const projects = [
     tech: ["Docker", "Kubernetes", "Jenkins", "SonarQube", "Python"],
     category: "DevOps",
     featured: true,
-    github: "https://github.com/shamiur/devsecops-pipeline",
+    
     demo: "/demos/devsecops-pipeline",
     image: "/api/placeholder/400/250",
     gradient: "from-green-500/20 to-teal-500/20"
@@ -41,7 +41,7 @@ const projects = [
     tech: ["Next.js", "Prisma", "PostgreSQL", "WebRTC", "AWS"],
     category: "Healthcare",
     featured: true,
-    github: "https://github.com/shamiur/healthcare-system",
+    
     demo: "/demos/healthcare-system",
     image: "/api/placeholder/400/250",
     gradient: "from-cyan-500/20 to-blue-500/20"
@@ -53,7 +53,7 @@ const projects = [
     tech: ["Next.js", "TypeScript", "OpenAI API", "Socket.io", "Tailwind"],
     category: "AI/ML",
     featured: true,
-    github: "https://github.com/shamiur/ai-assistant",
+   
     demo: "/demos/ai-chatbot",
     image: "/api/placeholder/400/250",
     gradient: "from-purple-500/20 to-pink-500/20"
@@ -65,7 +65,7 @@ const projects = [
     tech: ["React", "Monaco Editor", "WebRTC", "Node.js", "Docker"],
     category: "Development Tools",
     featured: true,
-    github: "https://github.com/shamiur/code-editor",
+    
     demo: "/demos/code-editor",
     image: "/api/placeholder/400/250",
     gradient: "from-orange-500/20 to-red-500/20"
@@ -77,7 +77,7 @@ const projects = [
     tech: ["Next.js", "Recharts", "PostgreSQL", "Redis", "Stripe API"],
     category: "E-Commerce",
     featured: true,
-    github: "https://github.com/shamiur/ecommerce-dashboard",
+    
     demo: "/demos/ecommerce-dashboard",
     image: "/api/placeholder/400/250",
     gradient: "from-emerald-500/20 to-green-500/20"
@@ -89,7 +89,7 @@ const projects = [
     tech: ["React", "TypeScript", "Socket.io", "Prisma", "Framer Motion"],
     category: "Productivity",
     featured: true,
-    github: "https://github.com/shamiur/task-manager",
+    
     demo: "/demos/task-manager",
     image: "/api/placeholder/400/250",
     gradient: "from-indigo-500/20 to-purple-500/20"
@@ -101,7 +101,7 @@ const projects = [
     tech: ["Vue.js", "Express", "MongoDB", "Socket.io", "AWS S3"],
     category: "Education",
     featured: false,
-    github: "https://github.com/shamiur/e-learning-platform",
+    
     demo: "/demos/e-learning-platform",
     image: "/api/placeholder/400/250",
     gradient: "from-yellow-500/20 to-orange-500/20"
@@ -113,7 +113,7 @@ const projects = [
     tech: ["React", "D3.js", "Apache Kafka", "Elasticsearch", "Node.js"],
     category: "Analytics",
     featured: false,
-    github: "https://github.com/shamiur/analytics-dashboard",
+   
     demo: "/demos/analytics-dashboard",
     image: "/api/placeholder/400/250",
     gradient: "from-rose-500/20 to-pink-500/20"
@@ -125,7 +125,7 @@ const projects = [
     tech: ["Go", "gRPC", "RabbitMQ", "PostgreSQL", "Docker"],
     category: "Security",
     featured: false,
-    github: "https://github.com/shamiur/secure-messaging",
+    
     demo: null,
     image: "/api/placeholder/400/250",
     gradient: "from-slate-500/20 to-gray-500/20"
@@ -137,7 +137,7 @@ const projects = [
     tech: ["Python", "TensorFlow", "InfluxDB", "MQTT", "React"],
     category: "IoT",
     featured: false,
-    github: "https://github.com/shamiur/iot-security",
+    
     demo: "https://iot-demo.shamiur.dev",
     image: "/api/placeholder/400/250",
     gradient: "from-teal-500/20 to-cyan-500/20"
@@ -149,7 +149,7 @@ const projects = [
     tech: ["Terraform", "Python", "AWS SDK", "Azure SDK", "Docker"],
     category: "Security",
     featured: false,
-    github: "https://github.com/shamiur/cloud-auditor",
+    
     demo: null,
     image: "/api/placeholder/400/250",
     gradient: "from-violet-500/20 to-purple-500/20"
