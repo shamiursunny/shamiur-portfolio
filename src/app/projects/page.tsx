@@ -288,16 +288,6 @@ export default function ProjectsPage() {
                   <CardTitle className="flex items-center justify-between text-lg group-hover:text-primary transition-colors">
                     {project.title}
                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {project.github && (
-                        <a
-                          href={project.github}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-muted-foreground hover:text-primary transition-colors p-1 rounded hover:bg-primary/10"
-                        >
-                          <Github className="w-4 h-4" />
-                        </a>
-                      )}
                       {project.demo && (
                         <a
                           href={project.demo}
