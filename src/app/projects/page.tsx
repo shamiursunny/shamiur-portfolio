@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { ExternalLink, Github, Search, Filter, Star, ArrowRight, Eye, Code } from "lucide-react"
+import { ExternalLink, Search, Filter, Star, ArrowRight, Eye, Code } from "lucide-react"
 import { useState } from "react"
 
 const projects = [
@@ -332,12 +332,7 @@ export default function ProjectsPage() {
                         </a>
                       </Button>
                     )}
-                    <Button variant="outline" size="sm" className="flex-1 gap-2 hover:bg-primary hover:text-primary-foreground transition-all" asChild>
-                      <a href={project.github}>
-                        <Code className="w-3 h-3" />
-                        Source Code
-                      </a>
-                    </Button>
+                   
                   </div>
                 </CardContent>
               </Card>
