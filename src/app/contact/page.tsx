@@ -328,13 +328,13 @@ export default function ContactPage() {
                   <Github className="w-5 h-5 group-hover:text-primary transition-colors" />
                   <div className="flex-1">
                     <p className="font-medium">GitHub</p>
-                    <p className="text-sm text-muted-foreground">/shamiursunny</p>
+                    <p className="text-sm text-muted-foreground">/shamiur-rashid-sunny</p>
                   </div>
                   <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </a>
 
                 <a
-                  href="https://linkedin.com/in/shamiursunny"
+                  href="https://linkedin.com/in/shamiur-rashid-sunny"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-3 p-3 rounded-lg border border-primary/10 hover:bg-primary/10 transition-all group"
@@ -342,7 +342,7 @@ export default function ContactPage() {
                   <Linkedin className="w-5 h-5 group-hover:text-primary transition-colors" />
                   <div className="flex-1">
                     <p className="font-medium">LinkedIn</p>
-                    <p className="text-sm text-muted-foreground">/shamiursunny</p>
+                    <p className="text-sm text-muted-foreground">/shamiur-rashid-sunny</p>
                   </div>
                   <ArrowRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </a>
