@@ -16,7 +16,7 @@ export function Footer() {
             </p>
             <div className="flex space-x-4">
               <a
-                href="https://github.com"
+                href="https://github.com/shamiursunny/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="glass-nav p-2 rounded-lg text-muted-foreground hover:text-primary transition-all duration-300 hover-lift"
@@ -24,7 +24,7 @@ export function Footer() {
                 <Github className="w-5 h-5" />
               </a>
               <a
-                href="https://linkedin.com"
+                href="https://linkedin.com/in/shamiursunny"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="glass-nav p-2 rounded-lg text-muted-foreground hover:text-primary transition-all duration-300 hover-lift"
@@ -32,7 +32,7 @@ export function Footer() {
                 <Linkedin className="w-5 h-5" />
               </a>
               <a
-                href="mailto:shamiur.sunny@example.com"
+                href="mailto:shamiur@engineer.com"
                 className="glass-nav p-2 rounded-lg text-muted-foreground hover:text-primary transition-all duration-300 hover-lift"
               >
                 <Mail className="w-5 h-5" />
