@@ -7,7 +7,7 @@ This report analyzes the current .env configuration for the Shamiur Portfolio Ne
 
 ### ✅ **NextAuth.js Configuration**
 ```env
-NEXTAUTH_URL=https://sunny.validity.online
+NEXTAUTH_URL=https://shamiur.com
 NEXTAUTH_SECRET=bf5945ca44e6f6ec14dadd179a11bdeec7aef785234b4df59c71cad978cef66d
 ```
 
@@ -27,7 +27,7 @@ EMAIL_SERVER_HOST=smtp.gmail.com
 EMAIL_SERVER_PORT=587
 EMAIL_SERVER_USER=shamiur.sunny@gmail.com
 EMAIL_SERVER_PASSWORD=Shahid@221286
-EMAIL_FROM=noreply@sunny.validity.online
+EMAIL_FROM=noreply@shamiur.com
 ```
 
 **Status**: ✅ Properly Configured

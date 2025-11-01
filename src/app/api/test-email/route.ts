@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
-import { sendContactNotification } from "@/lib/email"
+import { sendContactNotification, sendAutoReply, testEmailConfiguration } from "@/lib/email"
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,8 +15,18 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { to, subject, message } = body
+    const { type, to, subject, message } = body
 
+    // Test full email configuration
+    if (type === 'full-test') {
+      const results = await testEmailConfiguration()
+      return NextResponse.json(
+        { success: true, results },
+        { status: 200 }
+      )
+    }
+
+    // Test individual email
     if (!to || !subject || !message) {
       return NextResponse.json(
         { error: "Missing required fields: to, subject, message" },
@@ -24,17 +34,31 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Send test email
-    const result = await sendContactNotification({
+    const testData = {
       name: "Test User",
       email: to,
       message: message,
       createdAt: new Date()
-    })
+    }
+
+    let result
+    if (type === 'admin-notification') {
+      result = await sendContactNotification(testData)
+    } else if (type === 'auto-reply') {
+      result = await sendAutoReply(testData)
+    } else {
+      // Default: send admin notification
+      result = await sendContactNotification(testData)
+    }
 
     if (result.success) {
       return NextResponse.json(
-        { success: true, message: "Test email sent successfully", messageId: result.messageId },
+        { 
+          success: true, 
+          message: "Test email sent successfully", 
+          messageId: result.messageId,
+          provider: result.provider 
+        },
         { status: 200 }
       )
     } else {
