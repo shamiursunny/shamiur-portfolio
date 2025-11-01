@@ -1,4 +1,3 @@
-import { Resend } from 'resend'
 import nodemailer from 'nodemailer'
 
 interface EmailNotificationData {
@@ -8,13 +7,10 @@ interface EmailNotificationData {
   createdAt: Date
 }
 
-// Initialize Resend
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
-
-// Create Gmail transporter as fallback
+// Create Gmail transporter
 const createGmailTransporter = () => {
   if (!process.env.EMAIL_SERVER_HOST || !process.env.EMAIL_SERVER_USER || !process.env.EMAIL_SERVER_PASSWORD) {
-    return null
+    throw new Error('Gmail SMTP credentials not configured')
   }
   
   return nodemailer.createTransporter({
@@ -352,43 +348,13 @@ const getAutoReplyTemplate = (contactData: EmailNotificationData) => {
 `
 }
 
-// Send email using Resend (primary method)
-const sendWithResend = async (to: string, subject: string, html: string, replyTo?: string) => {
-  if (!resend) {
-    throw new Error('Resend not configured')
-  }
-
-  try {
-    const { data, error } = await resend.emails.send({
-      from: `noreply@shamiur.com`,
-      to: [to],
-      subject: subject,
-      html: html,
-      replyTo: replyTo || undefined
-    })
-
-    if (error) {
-      throw new Error(`Resend error: ${error.message}`)
-    }
-
-    console.log('Email sent via Resend:', data)
-    return { success: true, messageId: data?.id, provider: 'resend' }
-  } catch (error) {
-    console.error('Resend sending failed:', error)
-    throw error
-  }
-}
-
-// Send email using Gmail (fallback method)
+// Send email using Gmail SMTP
 const sendWithGmail = async (to: string, subject: string, html: string, replyTo?: string) => {
-  const transporter = createGmailTransporter()
-  if (!transporter) {
-    throw new Error('Gmail transporter not configured')
-  }
-
   try {
+    const transporter = createGmailTransporter()
+    
     const mailOptions = {
-      from: `noreply@shamiur.com`, // This will be the visible sender
+      from: `"Shamiur Rashid Sunny" <${process.env.EMAIL_FROM}>`, // Professional sender with noreply@shamiur.com
       to: to,
       subject: subject,
       html: html,
@@ -396,45 +362,11 @@ const sendWithGmail = async (to: string, subject: string, html: string, replyTo?
     }
 
     const info = await transporter.sendMail(mailOptions)
-    console.log('Email sent via Gmail:', info.messageId)
-    return { success: true, messageId: info.messageId, provider: 'gmail' }
+    console.log('Email sent via Gmail SMTP:', info.messageId)
+    return { success: true, messageId: info.messageId, provider: 'gmail-smtp' }
   } catch (error) {
-    console.error('Gmail sending failed:', error)
+    console.error('Gmail SMTP sending failed:', error)
     throw error
-  }
-}
-
-// Send email with fallback mechanism
-const sendEmailWithFallback = async (to: string, subject: string, html: string, replyTo?: string) => {
-  let lastError: Error | null = null
-
-  // Try Resend first
-  if (resend) {
-    try {
-      const result = await sendWithResend(to, subject, html, replyTo)
-      return result
-    } catch (error) {
-      lastError = error as Error
-      console.warn('Resend failed, trying Gmail fallback:', error.message)
-    }
-  } else {
-    console.warn('Resend not configured, using Gmail directly')
-  }
-
-  // Fallback to Gmail
-  try {
-    const result = await sendWithGmail(to, subject, html, replyTo)
-    return result
-  } catch (error) {
-    lastError = error as Error
-    console.error('Both Resend and Gmail failed')
-  }
-
-  // If both failed, return the last error
-  return { 
-    success: false, 
-    error: lastError?.message || 'All email providers failed',
-    provider: 'none'
   }
 }
 
@@ -449,7 +381,7 @@ export async function sendContactNotification(contactData: EmailNotificationData
     const subject = `🔔 New Contact Message from ${contactData.name} - shamiur.com`
     const html = getAdminNotificationTemplate(contactData)
 
-    const result = await sendEmailWithFallback(
+    const result = await sendWithGmail(
       adminEmail,
       subject,
       html,
@@ -457,7 +389,7 @@ export async function sendContactNotification(contactData: EmailNotificationData
     )
 
     if (result.success) {
-      console.log(`Admin notification sent via ${result.provider}:`, result.messageId)
+      console.log(`Admin notification sent via Gmail SMTP:`, result.messageId)
       return { success: true, messageId: result.messageId, provider: result.provider }
     } else {
       throw new Error(result.error)
@@ -475,14 +407,14 @@ export async function sendAutoReply(contactData: EmailNotificationData) {
     const subject = `Thank you for contacting shamiur.com`
     const html = getAutoReplyTemplate(contactData)
 
-    const result = await sendEmailWithFallback(
+    const result = await sendWithGmail(
       contactData.email,
       subject,
       html
     )
 
     if (result.success) {
-      console.log(`Auto-reply sent via ${result.provider}:`, result.messageId)
+      console.log(`Auto-reply sent via Gmail SMTP:`, result.messageId)
       return { success: true, messageId: result.messageId, provider: result.provider }
     } else {
       throw new Error(result.error)
@@ -499,7 +431,7 @@ export async function testEmailConfiguration() {
   const testData: EmailNotificationData = {
     name: 'Test User',
     email: 'test@example.com',
-    message: 'This is a test message to verify email configuration.',
+    message: 'This is a test message to verify Gmail SMTP configuration.',
     createdAt: new Date()
   }
 

@@ -8,7 +8,8 @@
     }
   },
   "env": {
-    "NEXTAUTH_URL": "https://sunny.validity.online"
+    "NEXTAUTH_URL": "https://sunny.validity.online",
+    "EMAIL_FROM": "noreply@shamiur.com"
   },
   "headers": [
     {
