@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { messageStorage, type Message } from "@/lib/message-storage"
 import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
@@ -65,11 +64,26 @@ const projects = [
 ]
 
 export default function StaticDashboard() {
-  const [contacts, setContacts] = useState<Message[]>([])
+  const [contacts, setContacts] = useState<any[]>([])
   const [showNotification, setShowNotification] = useState(false)
   const [notificationMessage, setNotificationMessage] = useState("")
   const { data: session, status } = useSession()
   const router = useRouter()
+
+  // Fetch contacts from database
+  const fetchContacts = async () => {
+    try {
+      const response = await fetch('/api/contact')
+      if (response.ok) {
+        const contactsData = await response.json()
+        setContacts(contactsData)
+      } else {
+        console.error('Failed to fetch contacts')
+      }
+    } catch (error) {
+      console.error('Error fetching contacts:', error)
+    }
+  }
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -81,17 +95,11 @@ export default function StaticDashboard() {
     }
   }, [session, status, router])
 
-  // Load messages from storage and subscribe to updates
+  // Load messages from database
   useEffect(() => {
     if (!session) return // Only load if authenticated
     
-    setContacts(messageStorage.getMessages())
-    
-    const unsubscribe = messageStorage.subscribe(() => {
-      setContacts(messageStorage.getMessages())
-    })
-    
-    return unsubscribe
+    fetchContacts()
   }, [session])
 
   // Show loading state while checking authentication
@@ -159,14 +167,51 @@ export default function StaticDashboard() {
     featuredProjects: projects.filter(p => p.featured).length
   }
 
-  const toggleReadStatus = (id: string) => {
-    messageStorage.updateMessage(id, { isRead: !contacts.find(c => c.id === id)?.isRead })
-    showNotificationMessage("Message status updated successfully!")
+  const toggleReadStatus = async (id: string) => {
+    try {
+      const contact = contacts.find(c => c.id === id)
+      if (!contact) return
+
+      const response = await fetch(`/api/contact/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ isRead: !contact.isRead }),
+      })
+
+      if (response.ok) {
+        // Update local state
+        setContacts(contacts.map(c => 
+          c.id === id ? { ...c, isRead: !c.isRead } : c
+        ))
+        showNotificationMessage("Message status updated successfully!")
+      } else {
+        showNotificationMessage("Failed to update message status")
+      }
+    } catch (error) {
+      console.error('Error updating message status:', error)
+      showNotificationMessage("Error updating message status")
+    }
   }
 
-  const deleteMessage = (id: string) => {
-    messageStorage.deleteMessage(id)
-    showNotificationMessage("Message deleted successfully!")
+  const deleteMessage = async (id: string) => {
+    try {
+      const response = await fetch(`/api/contact/${id}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        // Remove from local state
+        setContacts(contacts.filter(c => c.id !== id))
+        showNotificationMessage("Message deleted successfully!")
+      } else {
+        showNotificationMessage("Failed to delete message")
+      }
+    } catch (error) {
+      console.error('Error deleting message:', error)
+      showNotificationMessage("Error deleting message")
+    }
   }
 
   const showNotificationMessage = (message: string) => {

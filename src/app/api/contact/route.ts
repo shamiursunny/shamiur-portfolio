@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
 import { db } from "@/lib/db"
 import { sendContactNotification, sendAutoReply } from "@/lib/email"
-import { messageStorage } from "@/lib/message-storage"
 
 // Input validation schema
 const contactSchema = z.object({
@@ -85,22 +84,14 @@ export async function POST(request: NextRequest) {
       message: sanitizeInput(message)
     }
 
-    // Save to database
-    try {
-      await db.contact.create({
+      // Save to database
+      const contact = await db.contact.create({
         data: {
           name: sanitizedData.name,
           email: sanitizedData.email,
           message: sanitizedData.message,
           createdAt: new Date()
         }
-      })
-
-      // Also add to message storage for real-time dashboard updates
-      messageStorage.addMessage({
-        name: sanitizedData.name,
-        email: sanitizedData.email,
-        message: sanitizedData.message
       })
 
       // Log the contact submission (in development only)
@@ -144,7 +135,7 @@ export async function POST(request: NextRequest) {
       }
 
       return NextResponse.json(
-        { success: true, message: "Contact form submitted successfully" },
+        { success: true, message: "Contact form submitted successfully", contact },
         { status: 200 }
       )
 
@@ -166,8 +157,20 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
-  return NextResponse.json(
-    { error: "Method not allowed" },
-    { status: 405 }
-  )
+  try {
+    // Fetch all contact messages from database
+    const contacts = await db.contact.findMany({
+      orderBy: {
+        createdAt: 'desc'
+      }
+    })
+
+    return NextResponse.json(contacts)
+  } catch (error) {
+    console.error('Error fetching contacts:', error)
+    return NextResponse.json(
+      { error: "Failed to fetch contacts" },
+      { status: 500 }
+    )
+  }
 }

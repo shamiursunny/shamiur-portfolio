@@ -11,7 +11,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { messageStorage, type Message } from "@/lib/message-storage"
 import { 
   Users, 
   MessageSquare, 
@@ -32,7 +31,7 @@ import Link from "next/link"
 export default function DashboardPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const [contacts, setContacts] = useState<Message[]>([])
+  const [contacts, setContacts] = useState<any[]>([])
   const [projects, setProjects] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showNotification, setShowNotification] = useState(false)
@@ -43,15 +42,26 @@ export default function DashboardPage() {
     link: ""
   })
 
+  // Fetch contacts from database
+  const fetchContacts = async () => {
+    try {
+      const response = await fetch('/api/contact')
+      if (response.ok) {
+        const contactsData = await response.json()
+        setContacts(contactsData)
+      } else {
+        console.error('Failed to fetch contacts')
+      }
+    } catch (error) {
+      console.error('Error fetching contacts:', error)
+    }
+  }
+
   useEffect(() => {
     if (status === "loading") return
 
-    // Load messages from storage and subscribe to updates
-    setContacts(messageStorage.getMessages())
-    
-    const unsubscribe = messageStorage.subscribe(() => {
-      setContacts(messageStorage.getMessages())
-    })
+    // Fetch contacts from database
+    fetchContacts()
 
     // Fetch projects from database
     const fetchProjects = async () => {
@@ -73,8 +83,6 @@ export default function DashboardPage() {
     } else {
       setLoading(false)
     }
-
-    return unsubscribe
   }, [session, status])
 
   const handleAddProject = async () => {
@@ -102,9 +110,23 @@ export default function DashboardPage() {
     }
   }
 
-  const handleDeleteContact = (id: string) => {
-    messageStorage.deleteMessage(id)
-    showNotificationMessage("Contact deleted successfully!")
+  const handleDeleteContact = async (id: string) => {
+    try {
+      const response = await fetch(`/api/contact/${id}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        // Remove from local state
+        setContacts(contacts.filter(c => c.id !== id))
+        showNotificationMessage("Contact deleted successfully!")
+      } else {
+        showNotificationMessage("Failed to delete contact")
+      }
+    } catch (error) {
+      console.error('Error deleting contact:', error)
+      showNotificationMessage("Error deleting contact")
+    }
   }
 
   const handleDeleteProject = async (id: string) => {
@@ -122,9 +144,32 @@ export default function DashboardPage() {
     }
   }
 
-  const toggleReadStatus = (id: string) => {
-    messageStorage.updateMessage(id, { isRead: !contacts.find(c => c.id === id)?.isRead })
-    showNotificationMessage("Message status updated successfully!")
+  const toggleReadStatus = async (id: string) => {
+    try {
+      const contact = contacts.find(c => c.id === id)
+      if (!contact) return
+
+      const response = await fetch(`/api/contact/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ isRead: !contact.isRead }),
+      })
+
+      if (response.ok) {
+        // Update local state
+        setContacts(contacts.map(c => 
+          c.id === id ? { ...c, isRead: !c.isRead } : c
+        ))
+        showNotificationMessage("Message status updated successfully!")
+      } else {
+        showNotificationMessage("Failed to update message status")
+      }
+    } catch (error) {
+      console.error('Error updating message status:', error)
+      showNotificationMessage("Error updating message status")
+    }
   }
 
   const showNotificationMessage = (message: string) => {

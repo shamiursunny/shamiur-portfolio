@@ -10,7 +10,6 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "sonner"
 import { Mail, Phone, MapPin, Github, Linkedin, Send, CheckCircle, ArrowRight, User, MessageSquare, Globe } from "lucide-react"
-import { messageStorage } from "@/lib/message-storage"
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -42,13 +41,6 @@ export default function ContactPage() {
     setIsSubmitting(true)
 
     try {
-      // Save to message storage for dashboard display
-      messageStorage.addMessage({
-        name: formData.name,
-        email: formData.email,
-        message: formData.message
-      })
-
       const response = await fetch("/api/contact", {
         method: "POST",
         headers: {

@@ -79,6 +79,7 @@ model Contact {
   name      String
   email     String
   message   String
+  isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
   userId    String?
   user      User?    @relation(fields: [userId], references: [id])
