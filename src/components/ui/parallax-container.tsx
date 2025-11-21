@@ -25,7 +25,7 @@ const ParallaxContainer = forwardRef(
     }: ParallaxContainerProps,
     ref: ForwardedRef<HTMLDivElement>
   ) => {
-    const containerRef = ref || useRef<HTMLDivElement>(null)
+    const containerRef = useRef<HTMLDivElement>(null)
     const { scrollYProgress } = useScroll({
       target: containerRef,
       offset: offset as [number, number]
@@ -41,7 +41,7 @@ const ParallaxContainer = forwardRef(
 
     return (
       <MotionComponent
-        ref={containerRef}
+        ref={ref || containerRef}
         style={{ y }}
         className={cn(className)}
       >

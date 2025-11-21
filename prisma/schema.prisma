@@ -1,55 +1,58 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
+  id            String    @id @default(cuid())
   name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
   password      String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  contacts      Contact[]
   accounts      Account[]
   sessions      Session[]
+  contacts      Contact[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 model Account {
   id                String  @id @default(cuid())
-  userId            String
+  userId            String  @map("user_id")
   type              String
   provider          String
-  providerAccountId String
-  refresh_token     String?
-  access_token      String?
-  expires_at        Int?
+  providerAccountId String  @map("provider_account_id")
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_in        Int?
+  refresh_token_expires_in Int? @map("refresh_token_expires_in")
   token_type        String?
   scope             String?
-  id_token          String?
+  id_token          String? @db.Text
   session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@map("accounts")
 }
 
 model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
+  id           String  @id @default(cuid())
+  sessionToken String  @unique @map("session_token")
+  userId       String  @map("user_id")
   expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
 }
 
 model VerificationToken {
@@ -58,6 +61,7 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+  @@map("verification_tokens")
 }
 
 model Project {
@@ -65,11 +69,10 @@ model Project {
   title       String
   description String
   link        String
+  category    String?
+  tech        String?  // JSON string of technologies
   featured    Boolean  @default(false)
-  category    String
-  tech        String   // JSON string of tech stack
-  github      String?
-  demo        String?
+  views       Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
@@ -81,6 +84,5 @@ model Contact {
   message   String
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
-  userId    String?
-  user      User?    @relation(fields: [userId], references: [id])
+  updatedAt DateTime @updatedAt
 }
