@@ -13,7 +13,7 @@ const createGmailTransporter = () => {
     throw new Error('Gmail SMTP credentials not configured')
   }
   
-  return nodemailer.createTransporter({
+  return nodemailer.createTransport({
     host: process.env.EMAIL_SERVER_HOST,
     port: parseInt(process.env.EMAIL_SERVER_PORT || "587"),
     secure: false, // true for 465, false for other ports
@@ -392,7 +392,7 @@ export async function sendContactNotification(contactData: EmailNotificationData
       console.log(`Admin notification sent via Gmail SMTP:`, result.messageId)
       return { success: true, messageId: result.messageId, provider: result.provider }
     } else {
-      throw new Error(result.error)
+      throw new Error('Failed to send admin notification')
     }
 
   } catch (error) {
@@ -417,7 +417,7 @@ export async function sendAutoReply(contactData: EmailNotificationData) {
       console.log(`Auto-reply sent via Gmail SMTP:`, result.messageId)
       return { success: true, messageId: result.messageId, provider: result.provider }
     } else {
-      throw new Error(result.error)
+      throw new Error('Failed to send auto-reply')
     }
 
   } catch (error) {

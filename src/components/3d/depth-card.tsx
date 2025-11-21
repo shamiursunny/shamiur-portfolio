@@ -9,7 +9,7 @@ interface DepthCardProps {
   className?: string
   depth?: 'subtle' | 'medium' | 'deep'
   interactive?: boolean
-  as?: keyof JSX.IntrinsicElements
+  as?: keyof React.JSX.IntrinsicElements
 }
 
 const depthShadows = {

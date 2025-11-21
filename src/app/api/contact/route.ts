@@ -17,7 +17,8 @@ const RATE_LIMIT_MAX_REQUESTS = 5
 
 function getClientIdentifier(request: NextRequest): string {
   const forwarded = request.headers.get('x-forwarded-for')
-  const ip = forwarded ? forwarded.split(',')[0] : request.ip || 'unknown'
+  // request.ip is not available in Next.js 15, use forwarded header or default
+  const ip = forwarded ? forwarded.split(',')[0] : 'unknown'
   return ip
 }
 
@@ -70,7 +71,7 @@ export async function POST(request: NextRequest) {
     const validationResult = contactSchema.safeParse(body)
     if (!validationResult.success) {
       return NextResponse.json(
-        { error: "Invalid input", details: validationResult.error.errors },
+        { error: "Invalid input", details: validationResult.error.issues },
         { status: 400 }
       )
     }
@@ -84,6 +85,7 @@ export async function POST(request: NextRequest) {
       message: sanitizeInput(message)
     }
 
+    try {
       // Save to database
       const contact = await db.contact.create({
         data: {
@@ -108,7 +110,7 @@ export async function POST(request: NextRequest) {
       })
 
       if (!notificationResult.success) {
-        console.warn('Failed to send email notification:', notificationResult.error)
+        console.warn('Failed to send email notification:', notificationResult)
         // Don't fail the request, but log the error
       }
 
@@ -121,7 +123,7 @@ export async function POST(request: NextRequest) {
       })
 
       if (!autoReplyResult.success) {
-        console.warn('Failed to send auto-reply:', autoReplyResult.error)
+        console.warn('Failed to send auto-reply:', autoReplyResult)
         // Don't fail the request, but log the error
       }
 

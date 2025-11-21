@@ -9,7 +9,7 @@ interface MouseParallaxProps {
   strength?: number
   dampening?: number
   className?: string
-  as?: keyof JSX.IntrinsicElements
+  as?: keyof React.JSX.IntrinsicElements
 }
 
 export function MouseParallax({

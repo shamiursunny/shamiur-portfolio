@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react"
 import { ThemeProvider as NextThemesProvider } from "next-themes"
-import { type ThemeProviderProps } from "next-themes/dist/types"
+import type { ThemeProviderProps as NextThemeProviderProps } from "next-themes"
 
 type ExtendedTheme = "dark" | "light" | "studio" | "system"
 
@@ -22,7 +22,7 @@ export function useExtendedTheme() {
   return useContext(ThemeContext)
 }
 
-export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
+export function ThemeProvider({ children, ...props }: NextThemeProviderProps) {
   const [theme, setThemeState] = useState<ExtendedTheme>("system")
   const [resolvedTheme, setResolvedTheme] = useState<"dark" | "light" | "studio">("light")
   const [isAuto, setIsAuto] = useState(true)

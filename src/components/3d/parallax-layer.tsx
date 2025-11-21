@@ -9,7 +9,7 @@ interface ParallaxLayerProps {
   speed?: number
   direction?: 'up' | 'down' | 'left' | 'right'
   className?: string
-  as?: keyof JSX.IntrinsicElements
+  as?: keyof React.JSX.IntrinsicElements
   spring?: boolean
 }
 

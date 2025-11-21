@@ -1,87 +1,107 @@
 "use client"
 
-import { motion, useScroll, useTransform, useSpring } from "framer-motion"
-import { useRef, ReactNode } from "react"
+import { ForwardedRef, forwardRef, useRef } from "react"
+import { motion, useScroll, useTransform } from "framer-motion"
 import { cn } from "@/lib/utils"
 
 interface ParallaxContainerProps {
-  children: ReactNode
-  className?: string
+  children: React.ReactNode
   speed?: number
   offset?: [number, number]
   enableScale?: boolean
+  className?: string
+  as?: keyof React.JSX.IntrinsicElements
 }
 
-export function ParallaxContainer({ 
-  children, 
-  className, 
-  speed = 0.5,
-  offset = ["start end", "end start"],
-  enableScale = false
-}: ParallaxContainerProps) {
-  const ref = useRef<HTMLDivElement>(null)
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: offset as [string, string]
-  })
-  
-  const y = useTransform(scrollYProgress, [0, 1], [0, speed * 300])
-  const scale = useTransform(scrollYProgress, [0, 0.5, 1], [0.8, 1, 0.8])
-  const opacity = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0])
-  
-  const springY = useSpring(y, { stiffness: 100, damping: 20 })
-  const springScale = useSpring(scale, { stiffness: 100, damping: 20 })
-  
-  return (
-    <div ref={ref} className={cn("relative", className)}>
-      <motion.div
-        style={{
-          y: springY,
-          scale: enableScale ? springScale : 1,
-          opacity,
-          transformStyle: "preserve-3d",
-        }}
-        className="will-change-transform"
+const ParallaxContainer = forwardRef(
+  (
+    {
+      children,
+      speed = 0.5,
+      offset = [0, 1],
+      enableScale = false,
+      className,
+      as: Component = 'div'
+    }: ParallaxContainerProps,
+    ref: ForwardedRef<HTMLDivElement>
+  ) => {
+    const containerRef = ref || useRef<HTMLDivElement>(null)
+    const { scrollYProgress } = useScroll({
+      target: containerRef,
+      offset: offset as [number, number]
+    })
+
+    const y = useTransform(
+      scrollYProgress,
+      [0, 1],
+      [0, speed * 100]
+    )
+
+    const MotionComponent = motion[Component] as React.ComponentType<any>
+
+    return (
+      <MotionComponent
+        ref={containerRef}
+        style={{ y }}
+        className={cn(className)}
       >
         {children}
-      </motion.div>
-    </div>
-  )
-}
+      </MotionComponent>
+    )
+  }
+)
+
+ParallaxContainer.displayName = "ParallaxContainer"
 
 interface FloatingElementProps {
-  children: ReactNode
-  className?: string
+  children: React.ReactNode
   duration?: number
-  delay?: number
   intensity?: number
+  className?: string
+  delay?: number
+  interactive?: boolean
 }
 
-export function FloatingElement({ 
-  children, 
-  className, 
-  duration = 3,
+export function FloatingElement({
+  children,
+  duration = 6,
+  intensity = 10,
+  className,
   delay = 0,
-  intensity = 10
+  interactive = true
 }: FloatingElementProps) {
-  return (
+  const floatAnimation = {
+    y: [0, -intensity, 0, intensity, 0],
+    rotate: [0, 2, 0, -2, 0],
+  }
+
+  const Content = (
     <motion.div
-      className={cn("will-change-transform", className)}
-      animate={{
-        y: [0, -intensity, 0],
-        rotateZ: [-1, 1, -1],
-      }}
+      className={cn("relative", className)}
+      animate={floatAnimation}
       transition={{
         duration,
-        delay,
+        ease: "easeInOut",
         repeat: Infinity,
-        ease: "easeInOut"
+        delay
       }}
       style={{
-        transformStyle: "preserve-3d",
+        transformStyle: 'preserve-3d'
       }}
     >
       {children}
     </motion.div>
   )
+
+  if (interactive) {
+    return (
+      <motion.div className="w-full">
+        {Content}
+      </motion.div>
+    )
+  }
+
+  return Content
 }
+
+export { ParallaxContainer }
