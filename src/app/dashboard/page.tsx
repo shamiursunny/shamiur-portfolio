@@ -11,11 +11,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { 
-  Users, 
-  MessageSquare, 
-  Eye, 
-  Calendar, 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Users,
+  MessageSquare,
+  Eye,
+  Calendar,
   TrendingUp,
   Mail,
   Plus,
@@ -24,7 +25,13 @@ import {
   Settings,
   Bell,
   Check,
-  CheckCheck
+  CheckCheck,
+  Key,
+  Database,
+  Cpu,
+  FileText,
+  Layout,
+  Activity
 } from "lucide-react"
 import Link from "next/link"
 
@@ -33,19 +40,36 @@ export default function DashboardPage() {
   const router = useRouter()
   const [contacts, setContacts] = useState<any[]>([])
   const [projects, setProjects] = useState<any[]>([])
+  const [settings, setSettings] = useState<any[]>([])
+  const [pages, setPages] = useState<any[]>([])
+  const [aiStatus, setAiStatus] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showNotification, setShowNotification] = useState(false)
   const [notificationMessage, setNotificationMessage] = useState("")
+
   const [newProject, setNewProject] = useState({
     title: "",
     description: "",
     link: ""
   })
+  const [editingProject, setEditingProject] = useState<any>(null)
+
+  const [newSetting, setNewSetting] = useState({
+    key: "",
+    value: "",
+    category: "SYSTEM"
+  })
+
+  const [newPage, setNewPage] = useState({
+    title: "",
+    slug: "",
+    description: ""
+  })
 
   // Fetch contacts from database
   const fetchContacts = async () => {
     try {
-      const response = await fetch('/api/contact')
+      const response = await fetch('/api/contacts')
       if (response.ok) {
         const contactsData = await response.json()
         setContacts(contactsData)
@@ -57,11 +81,50 @@ export default function DashboardPage() {
     }
   }
 
+  const fetchSettings = async () => {
+    try {
+      const response = await fetch('/api/settings')
+      if (response.ok) {
+        const settingsData = await response.json()
+        setSettings(settingsData)
+      }
+    } catch (error) {
+      console.error('Error fetching settings:', error)
+    }
+  }
+
+  const fetchPages = async () => {
+    try {
+      const response = await fetch('/api/pages')
+      if (response.ok) {
+        const pagesData = await response.json()
+        setPages(pagesData)
+      }
+    } catch (error) {
+      console.error('Error fetching pages:', error)
+    }
+  }
+
+  const fetchAIStatus = async () => {
+    try {
+      const response = await fetch('/api/admin/ai-status')
+      if (response.ok) {
+        const data = await response.json()
+        setAiStatus(data)
+      }
+    } catch (error) {
+      console.error('Error fetching AI status:', error)
+    }
+  }
+
   useEffect(() => {
     if (status === "loading") return
 
-    // Fetch contacts from database
+    // Fetch initial data
     fetchContacts()
+    fetchSettings()
+    fetchPages()
+    fetchAIStatus()
 
     // Fetch projects from database
     const fetchProjects = async () => {
@@ -110,9 +173,39 @@ export default function DashboardPage() {
     }
   }
 
+  const handleUpdateProject = async () => {
+    if (!editingProject || !editingProject.title || !editingProject.description || !editingProject.link) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/projects/${editingProject.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: editingProject.title,
+          description: editingProject.description,
+          link: editingProject.link
+        }),
+      })
+
+      if (response.ok) {
+        const updatedProject = await response.json()
+        setProjects(projects.map(p => p.id === updatedProject.id ? updatedProject : p))
+        setEditingProject(null)
+        showNotificationMessage("Project updated successfully!")
+      }
+    } catch (error) {
+      console.error('Error updating project:', error)
+      showNotificationMessage("Error updating project")
+    }
+  }
+
   const handleDeleteContact = async (id: string) => {
     try {
-      const response = await fetch(`/api/contact/${id}`, {
+      const response = await fetch(`/api/contacts/${id}`, {
         method: 'DELETE',
       })
 
@@ -149,7 +242,7 @@ export default function DashboardPage() {
       const contact = contacts.find(c => c.id === id)
       if (!contact) return
 
-      const response = await fetch(`/api/contact/${id}`, {
+      const response = await fetch(`/api/contacts/${id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -159,7 +252,7 @@ export default function DashboardPage() {
 
       if (response.ok) {
         // Update local state
-        setContacts(contacts.map(c => 
+        setContacts(contacts.map(c =>
           c.id === id ? { ...c, isRead: !c.isRead } : c
         ))
         showNotificationMessage("Message status updated successfully!")
@@ -169,6 +262,85 @@ export default function DashboardPage() {
     } catch (error) {
       console.error('Error updating message status:', error)
       showNotificationMessage("Error updating message status")
+    }
+  }
+
+  const handleSaveSetting = async () => {
+    if (!newSetting.key || !newSetting.value) return
+
+    try {
+      const response = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newSetting)
+      })
+
+      if (response.ok) {
+        const savedSetting = await response.json()
+        // Update list (handle upsert logic locally)
+        const existingIndex = settings.findIndex(s => s.key === savedSetting.key)
+        if (existingIndex >= 0) {
+          const updatedSettings = [...settings]
+          updatedSettings[existingIndex] = savedSetting
+          setSettings(updatedSettings)
+        } else {
+          setSettings([savedSetting, ...settings])
+        }
+        setNewSetting({ key: "", value: "", category: "SYSTEM" })
+        showNotificationMessage("Setting saved successfully!")
+      }
+    } catch (error) {
+      console.error('Error saving setting:', error)
+      showNotificationMessage("Error saving setting")
+    }
+  }
+
+  const handleDeleteSetting = async (key: string) => {
+    try {
+      const response = await fetch(`/api/settings/${key}`, { method: 'DELETE' })
+      if (response.ok) {
+        setSettings(settings.filter(s => s.key !== key))
+        showNotificationMessage("Setting deleted successfully!")
+      }
+    } catch (error) {
+      console.error('Error deleting setting:', error)
+    }
+  }
+
+  const handleAddPage = async () => {
+    if (!newPage.title || !newPage.slug) return
+
+    try {
+      const response = await fetch('/api/pages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newPage)
+      })
+
+      if (response.ok) {
+        const page = await response.json()
+        setPages([page, ...pages])
+        setNewPage({ title: "", slug: "", description: "" })
+        showNotificationMessage("Page created successfully!")
+      } else {
+        const error = await response.json()
+        showNotificationMessage(error.error || "Failed to create page")
+      }
+    } catch (error) {
+      console.error('Error creating page:', error)
+      showNotificationMessage("Error creating page")
+    }
+  }
+
+  const handleDeletePage = async (id: string) => {
+    try {
+      const response = await fetch(`/api/pages/${id}`, { method: 'DELETE' })
+      if (response.ok) {
+        setPages(pages.filter(p => p.id !== id))
+        showNotificationMessage("Page deleted successfully!")
+      }
+    } catch (error) {
+      console.error('Error deleting page:', error)
     }
   }
 
@@ -212,8 +384,8 @@ export default function DashboardPage() {
     newContactsThisMonth: contacts.filter(c => {
       const contactDate = new Date(c.createdAt)
       const now = new Date()
-      return contactDate.getMonth() === now.getMonth() && 
-             contactDate.getFullYear() === now.getFullYear()
+      return contactDate.getMonth() === now.getMonth() &&
+        contactDate.getFullYear() === now.getFullYear()
     }).length,
     unreadMessages: contacts.filter(c => !c.isRead).length
   }
@@ -229,6 +401,49 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* Edit Project Dialog */}
+      {editingProject && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <Card className="w-full max-w-md mx-4">
+            <CardHeader>
+              <CardTitle>Edit Project</CardTitle>
+              <CardDescription>Update project details</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="edit-title">Title</Label>
+                <Input
+                  id="edit-title"
+                  value={editingProject.title}
+                  onChange={(e) => setEditingProject({ ...editingProject, title: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-description">Description</Label>
+                <Textarea
+                  id="edit-description"
+                  value={editingProject.description}
+                  onChange={(e) => setEditingProject({ ...editingProject, description: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-link">Project Link</Label>
+                <Input
+                  id="edit-link"
+                  value={editingProject.link}
+                  onChange={(e) => setEditingProject({ ...editingProject, link: e.target.value })}
+                />
+              </div>
+              <div className="flex justify-end gap-2 mt-4">
+                <Button variant="outline" onClick={() => setEditingProject(null)}>Cancel</Button>
+                <Button onClick={handleUpdateProject}>Save Changes</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <motion.div
@@ -319,6 +534,9 @@ export default function DashboardPage() {
             <TabsList>
               <TabsTrigger value="contacts">Contacts</TabsTrigger>
               <TabsTrigger value="projects">Projects</TabsTrigger>
+              <TabsTrigger value="pages">Pages</TabsTrigger>
+              <TabsTrigger value="settings">Settings</TabsTrigger>
+              <TabsTrigger value="ai-status">AI Status</TabsTrigger>
             </TabsList>
 
             {/* Contacts Tab */}
@@ -373,8 +591,8 @@ export default function DashboardPage() {
                                   <CheckCheck className="w-4 h-4 text-primary" />
                                 )}
                               </Button>
-                              <Button 
-                                variant="ghost" 
+                              <Button
+                                variant="ghost"
                                 size="sm"
                                 onClick={() => handleDeleteContact(contact.id)}
                                 className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
@@ -413,7 +631,7 @@ export default function DashboardPage() {
                       <Input
                         id="title"
                         value={newProject.title}
-                        onChange={(e) => setNewProject({...newProject, title: e.target.value})}
+                        onChange={(e) => setNewProject({ ...newProject, title: e.target.value })}
                         placeholder="Project title"
                       />
                     </div>
@@ -422,7 +640,7 @@ export default function DashboardPage() {
                       <Textarea
                         id="description"
                         value={newProject.description}
-                        onChange={(e) => setNewProject({...newProject, description: e.target.value})}
+                        onChange={(e) => setNewProject({ ...newProject, description: e.target.value })}
                         placeholder="Project description"
                       />
                     </div>
@@ -431,7 +649,7 @@ export default function DashboardPage() {
                       <Input
                         id="link"
                         value={newProject.link}
-                        onChange={(e) => setNewProject({...newProject, link: e.target.value})}
+                        onChange={(e) => setNewProject({ ...newProject, link: e.target.value })}
                         placeholder="https://example.com"
                       />
                     </div>
@@ -460,21 +678,220 @@ export default function DashboardPage() {
                                 <p className="text-sm text-muted-foreground mb-1">
                                   {project.description}
                                 </p>
-                                <a 
-                                  href={project.link} 
-                                  target="_blank" 
+                                <a
+                                  href={project.link}
+                                  target="_blank"
                                   rel="noopener noreferrer"
                                   className="text-xs text-blue-600 hover:underline"
                                 >
                                   {project.link}
                                 </a>
                               </div>
-                              <Button 
-                                variant="outline" 
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setEditingProject(project)}
+                                >
+                                  <Settings className="w-3 h-3" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleDeleteProject(project.id)}
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            {/* Pages Tab */}
+            <TabsContent value="pages">
+              <div className="grid lg:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText className="w-5 h-5" />
+                      Create New Page
+                    </CardTitle>
+                    <CardDescription>
+                      Add a new page to your portfolio
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <Label htmlFor="page-title">Page Title</Label>
+                      <Input
+                        id="page-title"
+                        value={newPage.title}
+                        onChange={(e) => setNewPage({ ...newPage, title: e.target.value })}
+                        placeholder="e.g., About Me"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="page-slug">Slug (URL)</Label>
+                      <Input
+                        id="page-slug"
+                        value={newPage.slug}
+                        onChange={(e) => setNewPage({ ...newPage, slug: e.target.value })}
+                        placeholder="e.g., about-me"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="page-desc">SEO Description</Label>
+                      <Textarea
+                        id="page-desc"
+                        value={newPage.description}
+                        onChange={(e) => setNewPage({ ...newPage, description: e.target.value })}
+                        placeholder="Page description for search engines"
+                      />
+                    </div>
+                    <Button onClick={handleAddPage} className="w-full">
+                      Create Page
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Your Pages</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3 max-h-96 overflow-y-auto">
+                      {pages.length === 0 ? (
+                        <p className="text-muted-foreground text-center py-8">
+                          No pages created yet.
+                        </p>
+                      ) : (
+                        pages.map((page) => (
+                          <div key={page.id} className="border rounded-lg p-3">
+                            <div className="flex justify-between items-center">
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h4 className="font-semibold">{page.title}</h4>
+                                  <Badge variant={page.isPublished ? "default" : "secondary"} className="text-xs">
+                                    {page.isPublished ? "Published" : "Draft"}
+                                  </Badge>
+                                </div>
+                                <p className="text-xs text-muted-foreground font-mono">
+                                  /{page.slug}
+                                </p>
+                              </div>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeletePage(page.id)}
+                                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+
+            {/* Settings Tab */}
+            <TabsContent value="settings">
+              <div className="grid lg:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Key className="w-5 h-5" />
+                      Add API Key / Setting
+                    </CardTitle>
+                    <CardDescription>
+                      Manage your API keys and system configurations
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <Label htmlFor="setting-key">Key Name</Label>
+                      <Input
+                        id="setting-key"
+                        value={newSetting.key}
+                        onChange={(e) => setNewSetting({ ...newSetting, key: e.target.value })}
+                        placeholder="e.g., RESEND_API_KEY, OPENAI_API_KEY"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="setting-value">Value</Label>
+                      <Input
+                        id="setting-value"
+                        type="password"
+                        value={newSetting.value}
+                        onChange={(e) => setNewSetting({ ...newSetting, value: e.target.value })}
+                        placeholder="Enter secret key"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="setting-category">Category</Label>
+                      <Select
+                        value={newSetting.category}
+                        onValueChange={(value) => setNewSetting({ ...newSetting, category: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="SYSTEM">System</SelectItem>
+                          <SelectItem value="AI">AI</SelectItem>
+                          <SelectItem value="API">API</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Button onClick={handleSaveSetting} className="w-full">
+                      Save Setting
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Existing Settings</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3 max-h-96 overflow-y-auto">
+                      {settings.length === 0 ? (
+                        <p className="text-muted-foreground text-center py-8">
+                          No settings configured.
+                        </p>
+                      ) : (
+                        settings.map((setting) => (
+                          <div key={setting.id} className="border rounded-lg p-3">
+                            <div className="flex justify-between items-center">
+                              <div className="flex-1 overflow-hidden">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h4 className="font-semibold truncate" title={setting.key}>{setting.key}</h4>
+                                  <Badge variant="secondary" className="text-xs">
+                                    {setting.category}
+                                  </Badge>
+                                </div>
+                                <p className="text-xs text-muted-foreground font-mono truncate">
+                                  {setting.value.substring(0, 8)}...{setting.value.substring(setting.value.length - 4)}
+                                </p>
+                              </div>
+                              <Button
+                                variant="ghost"
                                 size="sm"
-                                onClick={() => handleDeleteProject(project.id)}
+                                onClick={() => handleDeleteSetting(setting.key)}
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
                               >
-                                <Trash2 className="w-3 h-3" />
+                                <Trash2 className="w-4 h-4" />
                               </Button>
                             </div>
                           </div>
@@ -484,6 +901,73 @@ export default function DashboardPage() {
                   </CardContent>
                 </Card>
               </div>
+            </TabsContent>
+
+            {/* AI Status Tab */}
+            <TabsContent value="ai-status">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Cpu className="w-5 h-5" />
+                    AI Provider Status
+                  </CardTitle>
+                  <CardDescription>
+                    Real-time monitoring of integrated AI services
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {aiStatus.length === 0 ? (
+                      <div className="col-span-3 text-center py-8 text-muted-foreground">
+                        <Activity className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                        <p>No AI providers configured or status unavailable</p>
+                      </div>
+                    ) : (
+                      aiStatus.map((status) => (
+                        <Card key={status.name} className="overflow-hidden">
+                          <div className={`h-1 w-full ${status.status === 'online' ? 'bg-green-500' : 'bg-red-500'}`} />
+                          <CardHeader className="pb-2">
+                            <div className="flex justify-between items-center">
+                              <CardTitle className="text-lg">{status.name}</CardTitle>
+                              <Badge variant={status.status === 'online' ? 'default' : 'destructive'}>
+                                {status.status}
+                              </Badge>
+                            </div>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-2">
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Latency</span>
+                                <span className="font-mono">{status.latency ? `${status.latency}ms` : 'N/A'}</span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground">Provider</span>
+                                <span className="capitalize">{status.provider}</span>
+                              </div>
+                              {status.error && (
+                                <p className="text-xs text-red-500 mt-2 bg-red-500/10 p-2 rounded">
+                                  {status.error}
+                                </p>
+                              )}
+                              {status.note && (
+                                <p className="text-xs text-blue-500 mt-2 bg-blue-500/10 p-2 rounded">
+                                  {status.note}
+                                </p>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))
+                    )}
+                  </div>
+                  <div className="mt-8">
+                    <Button variant="outline" size="sm" onClick={fetchAIStatus} className="gap-2">
+                      <Activity className="w-4 h-4" />
+                      Refresh Status
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         </motion.div>
