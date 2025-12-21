@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -84,5 +84,57 @@ model Contact {
   message   String
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+}
+
+model Page {
+  id            String    @id @default(cuid())
+  slug          String    @unique
+  title         String
+  description   String?   @db.Text // SEO description
+  keywords      String?   @db.Text
+  ogTitle       String?
+  ogDescription String?   @db.Text
+  ogImage       String?
+  twitterCard   String?   @default("summary_large_image")
+  canonicalUrl  String?
+  structuredData Json?    // JSON-LD
+  isPublished   Boolean   @default(true)
+  sections      Section[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Section {
+  id        String   @id @default(cuid())
+  type      String   // e.g., "hero", "about", "projects", "contact"
+  content   Json     // Flexible content structure
+  order     Int      @default(0)
+  pageId    String
+  page      Page     @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([pageId])
+}
+
+model Setting {
+  id        String   @id @default(cuid())
+  key       String   @unique // e.g., "OPENAI_API_KEY", "VERCEL_TOKEN"
+  value     String   @db.Text
+  category  String   @default("SYSTEM") // "AI", "SYSTEM", "API"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AiLog {
+  id         String   @id @default(cuid())
+  action     String   // e.g., "GENERATE_CONTENT", "UPDATE_PAGE"
+  details    String?  @db.Text
+  status     String   // "SUCCESS", "FAILED"
+  tokensUsed Int      @default(0)
+  createdAt  DateTime @default(now())
 }

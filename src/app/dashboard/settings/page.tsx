@@ -10,15 +10,19 @@ import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { 
-  Settings, 
-  Mail, 
-  Bell, 
-  Shield, 
+import {
+  Settings,
+  Mail,
+  Bell,
+  Shield,
   TestTube,
   CheckCircle,
   XCircle,
-  Info
+  Info,
+  Cpu,
+  Zap,
+  Activity,
+  RefreshCw
 } from "lucide-react"
 import Link from "next/link"
 import { DemoTester } from "@/components/demo-tester"
@@ -31,12 +35,32 @@ export default function SettingsPage() {
     emailSubject: "🔔 New Contact Message from {name}"
   })
 
+  const [aiStatus, setAiStatus] = useState<any[]>([])
+  const [isCheckingAi, setIsCheckingAi] = useState(false)
+
   const [testResult, setTestResult] = useState<{
     success: boolean
     message: string
   } | null>(null)
 
   const [isLoading, setIsLoading] = useState(false)
+
+  const checkAiStatus = async () => {
+    setIsCheckingAi(true)
+    try {
+      const response = await fetch('/api/admin/ai-status')
+      const data = await response.json()
+      setAiStatus(data)
+    } catch (error) {
+      console.error('Failed to check AI status:', error)
+    } finally {
+      setIsCheckingAi(false)
+    }
+  }
+
+  useEffect(() => {
+    checkAiStatus()
+  }, [])
 
   const handleTestEmail = async () => {
     setIsLoading(true)
@@ -80,7 +104,7 @@ export default function SettingsPage() {
 
   const handleSaveSettings = async () => {
     setIsLoading(true)
-    
+
     try {
       const response = await fetch('/api/settings', {
         method: 'POST',
@@ -127,7 +151,7 @@ export default function SettingsPage() {
         </div>
 
         <Tabs defaultValue="email" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="email" className="flex items-center gap-2">
               <Mail className="w-4 h-4" />
               Email
@@ -139,6 +163,10 @@ export default function SettingsPage() {
             <TabsTrigger value="security" className="flex items-center gap-2">
               <Shield className="w-4 h-4" />
               Security
+            </TabsTrigger>
+            <TabsTrigger value="ai" className="flex items-center gap-2">
+              <Cpu className="w-4 h-4" />
+              AI Monitor
             </TabsTrigger>
           </TabsList>
 
@@ -212,17 +240,17 @@ export default function SettingsPage() {
                     <TestTube className="w-4 h-4" />
                     <Label>Test Email Configuration</Label>
                   </div>
-                  
+
                   <div className="flex gap-2">
-                    <Button 
-                      onClick={handleTestEmail} 
+                    <Button
+                      onClick={handleTestEmail}
                       disabled={isLoading}
                       variant="outline"
                     >
                       {isLoading ? "Sending..." : "Send Test Email"}
                     </Button>
-                    <Button 
-                      onClick={handleSaveSettings} 
+                    <Button
+                      onClick={handleSaveSettings}
                       disabled={isLoading}
                     >
                       {isLoading ? "Saving..." : "Save Settings"}
@@ -353,6 +381,76 @@ export default function SettingsPage() {
 
               <DemoTester />
             </div>
+          </TabsContent>
+
+          <TabsContent value="ai">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Cpu className="w-5 h-5" />
+                      AI Agent Status
+                    </CardTitle>
+                    <CardDescription>
+                      Monitor connectivity and latency of your AI providers
+                    </CardDescription>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={checkAiStatus}
+                    disabled={isCheckingAi}
+                  >
+                    <RefreshCw className={`w-4 h-4 mr-2 ${isCheckingAi ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid gap-4">
+                  {aiStatus.length === 0 && !isCheckingAi && (
+                    <p className="text-sm text-muted-foreground text-center py-8">
+                      No AI providers configured or detected.
+                    </p>
+                  )}
+
+                  {aiStatus.map((ai, index) => (
+                    <div key={index} className="flex items-center justify-between p-4 border rounded-lg bg-card/50">
+                      <div className="flex items-center gap-4">
+                        <div className={`p-2 rounded-full ${ai.status === 'online' ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                          {ai.status === 'online' ? <Zap className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                        </div>
+                        <div>
+                          <h4 className="font-medium">{ai.name}</h4>
+                          <p className="text-xs text-muted-foreground uppercase tracking-wider">
+                            {ai.provider}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        {ai.latency && (
+                          <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                            <Activity className="w-3 h-3" />
+                            {ai.latency}ms
+                          </div>
+                        )}
+                        <Badge variant={ai.status === 'online' ? "default" : "destructive"}>
+                          {ai.status === 'online' ? "Online" : "Offline"}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertDescription>
+                    The chatbot will automatically prioritize the Vercel AI Gateway. If it's offline, it will fall back to DeepSeek Direct or Hugging Face if configured.
+                  </AlertDescription>
+                </Alert>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

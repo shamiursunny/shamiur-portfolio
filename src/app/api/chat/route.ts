@@ -23,14 +23,20 @@ export async function POST(req: Request) {
             where: { key: 'HUGGINGFACE_API_KEY' }
         });
 
+        const githubSetting = await db.setting.findUnique({
+            where: { key: 'GITHUB_TOKEN' }
+        });
+
         const vercelApiKey = vercelSetting?.value || process.env.VERCEL_AI_GATEWAY_KEY;
         const deepseekApiKey = deepseekSetting?.value || process.env.DEEPSEEK_API_KEY;
         const hfApiKey = hfSetting?.value || process.env.HUGGINGFACE_API_KEY;
+        const githubToken = githubSetting?.value || process.env.GITHUB_TOKEN;
 
         console.log('API Key Check:', {
             hasVercelKey: !!vercelApiKey,
             hasDeepseekKey: !!deepseekApiKey,
             hasHFKey: !!hfApiKey,
+            hasGithubToken: !!githubToken,
             deepseekKeyPrefix: deepseekApiKey?.substring(0, 4)
         });
 
@@ -172,10 +178,60 @@ export async function POST(req: Request) {
       2. **Automation**: Trigger external workflows on Make.com or Zapier using 'triggerAutomation'.
       3. **Social Media**: Post to YouTube or Twitter using 'manageSocialMedia'.
       4. **Freelance Hunter**: Scan for projects using 'scanProjects'.
+      5. **GitHub Manager**: Create repositories, manage files, and list repos using 'manageGithub'.
+      6. **Deployment**: Deploy projects to Vercel or Netlify using 'deployProject'.
       
       Be professional, technical, and proactive. Provide high-quality responses.`,
             messages,
             tools: {
+                manageGithub: tool({
+                    description: 'Manage GitHub repositories (create, edit files, list).',
+                    parameters: z.object({
+                        action: z.enum(['create_repo', 'create_file', 'update_file', 'list_repos']).describe('The action to perform'),
+                        repoName: z.string().optional().describe('The name of the repository'),
+                        path: z.string().optional().describe('The file path'),
+                        content: z.string().optional().describe('The file content'),
+                        description: z.string().optional().describe('Repository description'),
+                        isPrivate: z.boolean().optional().describe('Whether the repository should be private'),
+                    }),
+                    execute: async (params) => {
+                        try {
+                            const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+                            const response = await fetch(`${baseUrl}/api/ai/agent/github`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ ...params, token: githubToken })
+                            });
+                            return await response.json();
+                        } catch (error) {
+                            console.error('GitHub management error:', error);
+                            return { success: false, error: 'Failed to manage GitHub' };
+                        }
+                    },
+                }),
+                deployProject: tool({
+                    description: 'Deploy a project to Vercel or Netlify.',
+                    parameters: z.object({
+                        platform: z.enum(['vercel', 'netlify']).describe('The platform to deploy to'),
+                        repoUrl: z.string().describe('The GitHub repository URL to deploy'),
+                        projectName: z.string().describe('The name of the project on the platform'),
+                        envVars: z.record(z.string()).optional().describe('Environment variables for the deployment'),
+                    }),
+                    execute: async (params) => {
+                        try {
+                            const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+                            const response = await fetch(`${baseUrl}/api/ai/agent/deploy`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(params)
+                            });
+                            return await response.json();
+                        } catch (error) {
+                            console.error('Deployment error:', error);
+                            return { success: false, error: 'Failed to deploy project' };
+                        }
+                    },
+                }),
                 createPrototype: tool({
                     description: 'Create a new project prototype, GitHub repository, and send email to client.',
                     parameters: z.object({

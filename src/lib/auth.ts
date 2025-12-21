@@ -14,7 +14,7 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         console.log("Auth attempt:", credentials?.email)
-        
+
         if (!credentials?.email || !credentials?.password) {
           console.log("Missing credentials")
           return null
@@ -90,7 +90,7 @@ export const authOptions: NextAuthOptions = {
     },
     async redirect({ url, baseUrl }) {
       // Redirect to static dashboard after login
-      return baseUrl + "/static-dashboard"
+      return baseUrl + "/dashboard"
     },
   },
 }

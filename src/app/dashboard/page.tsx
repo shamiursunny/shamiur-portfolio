@@ -851,6 +851,7 @@ export default function DashboardPage() {
                           <SelectItem value="SYSTEM">System</SelectItem>
                           <SelectItem value="AI">AI</SelectItem>
                           <SelectItem value="API">API</SelectItem>
+                          <SelectItem value="GITHUB">GitHub</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

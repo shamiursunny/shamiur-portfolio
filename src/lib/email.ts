@@ -1,47 +1,43 @@
-import nodemailer from 'nodemailer'
+import { Resend } from 'resend'
+import { db } from './db'
 
 interface EmailNotificationData {
-  name: string
-  email: string
-  message: string
-  createdAt: Date
+    name: string
+    email: string
+    message: string
+    createdAt: Date
 }
 
-// Create Gmail transporter
-const createGmailTransporter = () => {
-  if (!process.env.EMAIL_SERVER_HOST || !process.env.EMAIL_SERVER_USER || !process.env.EMAIL_SERVER_PASSWORD) {
-    throw new Error('Gmail SMTP credentials not configured')
-  }
-  
-  return nodemailer.createTransport({
-    host: process.env.EMAIL_SERVER_HOST,
-    port: parseInt(process.env.EMAIL_SERVER_PORT || "587"),
-    secure: false, // true for 465, false for other ports
-    auth: {
-      user: process.env.EMAIL_SERVER_USER,
-      pass: process.env.EMAIL_SERVER_PASSWORD,
-    },
-  })
+// Helper to get Resend instance with dynamic API key
+const getResend = async () => {
+    const setting = await db.setting.findUnique({
+        where: { key: 'RESEND_API_KEY' }
+    })
+    const apiKey = setting?.value || process.env.RESEND_API_KEY
+    if (!apiKey) {
+        throw new Error('Resend API Key not configured. Please add RESEND_API_KEY in Settings.')
+    }
+    return new Resend(apiKey)
 }
 
 // Format date for email templates
 const formatDate = (date: Date) => {
-  return date.toLocaleString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: 'UTC'
-  })
+    return date.toLocaleString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'UTC'
+    })
 }
 
 // Admin notification email template
 const getAdminNotificationTemplate = (contactData: EmailNotificationData) => {
-  const formattedDate = formatDate(contactData.createdAt)
-  
-  return `
+    const formattedDate = formatDate(contactData.createdAt)
+
+    return `
 <!DOCTYPE html>
 <html>
 <head>
@@ -207,7 +203,7 @@ const getAdminNotificationTemplate = (contactData: EmailNotificationData) => {
 
 // Auto-reply email template
 const getAutoReplyTemplate = (contactData: EmailNotificationData) => {
-  return `
+    return `
 <!DOCTYPE html>
 <html>
 <head>
@@ -348,98 +344,93 @@ const getAutoReplyTemplate = (contactData: EmailNotificationData) => {
 `
 }
 
-// Send email using Gmail SMTP
-const sendWithGmail = async (to: string, subject: string, html: string, replyTo?: string) => {
-  try {
-    const transporter = createGmailTransporter()
-    
-    const mailOptions = {
-      from: `"Shamiur Rashid Sunny" <${process.env.EMAIL_FROM}>`, // Professional sender with noreply@shamiur.com
-      to: to,
-      subject: subject,
-      html: html,
-      replyTo: replyTo || undefined
-    }
+// Send email using Resend
+const sendWithResend = async (to: string, subject: string, html: string, replyTo?: string) => {
+    try {
+        const resend = await getResend()
+        const data = await resend.emails.send({
+            from: `Shamiur Portfolio <${process.env.EMAIL_FROM}>`, // Using the verified domain from .env
+            to: to,
+            subject: subject,
+            html: html,
+            replyTo: replyTo
+        })
 
-    const info = await transporter.sendMail(mailOptions)
-    console.log('Email sent via Gmail SMTP:', info.messageId)
-    return { success: true, messageId: info.messageId, provider: 'gmail-smtp' }
-  } catch (error) {
-    console.error('Gmail SMTP sending failed:', error)
-    throw error
-  }
+        if (data.error) {
+            console.error('Resend API Error:', data.error)
+            throw new Error(data.error.message)
+        }
+
+        console.log('Email sent via Resend:', data.data?.id)
+        return { success: true, messageId: data.data?.id, provider: 'resend' }
+    } catch (error) {
+        console.error('Resend sending failed:', error)
+        throw error
+    }
 }
 
 // Send notification to admin
 export async function sendContactNotification(contactData: EmailNotificationData) {
-  try {
-    const adminEmail = process.env.CONTACT_EMAIL_TO || process.env.EMAIL_SERVER_USER
-    if (!adminEmail) {
-      throw new Error('Admin email not configured')
+    try {
+        const adminEmail = process.env.CONTACT_EMAIL_TO || process.env.EMAIL_SERVER_USER
+        if (!adminEmail) {
+            throw new Error('Admin email not configured')
+        }
+
+        const subject = `🔔 New Contact Message from ${contactData.name} - shamiur.com`
+        const html = getAdminNotificationTemplate(contactData)
+
+        const result = await sendWithResend(
+            adminEmail,
+            subject,
+            html,
+            contactData.email // Allow direct reply to the sender
+        )
+
+        return result
+
+    } catch (error) {
+        console.error('Error sending admin notification:', error)
+        return { success: false, error: (error as Error).message }
     }
-
-    const subject = `🔔 New Contact Message from ${contactData.name} - shamiur.com`
-    const html = getAdminNotificationTemplate(contactData)
-
-    const result = await sendWithGmail(
-      adminEmail,
-      subject,
-      html,
-      contactData.email // Allow direct reply to the sender
-    )
-
-    if (result.success) {
-      console.log(`Admin notification sent via Gmail SMTP:`, result.messageId)
-      return { success: true, messageId: result.messageId, provider: result.provider }
-    } else {
-      throw new Error('Failed to send admin notification')
-    }
-
-  } catch (error) {
-    console.error('Error sending admin notification:', error)
-    return { success: false, error: (error as Error).message }
-  }
 }
 
 // Send auto-reply to the person who contacted
 export async function sendAutoReply(contactData: EmailNotificationData) {
-  try {
-    const subject = `Thank you for contacting shamiur.com`
-    const html = getAutoReplyTemplate(contactData)
+    try {
+        const subject = `Thank you for contacting shamiur.com`
+        const html = getAutoReplyTemplate(contactData)
 
-    const result = await sendWithGmail(
-      contactData.email,
-      subject,
-      html
-    )
+        const result = await sendWithResend(
+            contactData.email,
+            subject,
+            html
+        )
 
-    if (result.success) {
-      console.log(`Auto-reply sent via Gmail SMTP:`, result.messageId)
-      return { success: true, messageId: result.messageId, provider: result.provider }
-    } else {
-      throw new Error('Failed to send auto-reply')
+        return result
+
+    } catch (error) {
+        console.error('Error sending auto-reply:', error)
+        return { success: false, error: (error as Error).message }
     }
-
-  } catch (error) {
-    console.error('Error sending auto-reply:', error)
-    return { success: false, error: (error as Error).message }
-  }
 }
 
 // Test email configuration
 export async function testEmailConfiguration() {
-  const testData: EmailNotificationData = {
-    name: 'Test User',
-    email: 'test@example.com',
-    message: 'This is a test message to verify Gmail SMTP configuration.',
-    createdAt: new Date()
-  }
+    const testData: EmailNotificationData = {
+        name: 'Test User',
+        email: 'test@example.com',
+        message: 'This is a test message to verify Resend configuration.',
+        createdAt: new Date()
+    }
 
-  const adminResult = await sendContactNotification(testData)
-  const autoReplyResult = await sendAutoReply(testData)
+    const adminResult = await sendContactNotification(testData)
+    // We might skip auto-reply for test to avoid sending to test@example.com if it's not a real email, 
+    // but Resend might block it anyway. For now, we'll try both.
+    const autoReplyResult = await sendAutoReply(testData)
 
-  return {
-    admin: adminResult,
-    autoReply: autoReplyResult
-  }
+    return {
+        admin: adminResult,
+        autoReply: autoReplyResult
+    }
 }

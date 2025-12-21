@@ -127,15 +127,6 @@ export async function POST(request: NextRequest) {
         // Don't fail the request, but log the error
       }
 
-      // Emit Socket.IO event for real-time notification (if socket server is running)
-      try {
-        // This would be handled by your Socket.IO server
-        // You can emit an event here if needed
-      } catch (socketError) {
-        // Don't fail the request if socket notification fails
-        console.warn('Socket notification failed:', socketError)
-      }
-
       return NextResponse.json(
         { success: true, message: "Contact form submitted successfully", contact },
         { status: 200 }
@@ -153,25 +144,6 @@ export async function POST(request: NextRequest) {
     console.error('Contact form error:', error)
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
-    )
-  }
-}
-
-export async function GET() {
-  try {
-    // Fetch all contact messages from database
-    const contacts = await db.contact.findMany({
-      orderBy: {
-        createdAt: 'desc'
-      }
-    })
-
-    return NextResponse.json(contacts)
-  } catch (error) {
-    console.error('Error fetching contacts:', error)
-    return NextResponse.json(
-      { error: "Failed to fetch contacts" },
       { status: 500 }
     )
   }

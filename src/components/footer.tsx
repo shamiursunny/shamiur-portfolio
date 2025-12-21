@@ -4,7 +4,7 @@ import { Github, Linkedin, Mail, Heart } from "lucide-react"
 export function Footer() {
   return (
     <footer className="glass-subtle border-t border-border/30 mt-auto">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Brand */}
           <div className="space-y-4">
