@@ -64,7 +64,7 @@ model VerificationToken {
   @@map("verification_tokens")
 }
 
-model Project {
+model PortfolioProject {
   id          String   @id @default(cuid())
   title       String
   description String
@@ -137,4 +137,311 @@ model AiLog {
   status     String   // "SUCCESS", "FAILED"
   tokensUsed Int      @default(0)
   createdAt  DateTime @default(now())
+}
+
+// ===== AI SUPER AGENT MODELS =====
+
+enum ProjectStatus {
+  PENDING
+  IN_PROGRESS
+  DEVELOPMENT
+  TESTING
+  DEPLOYMENT
+  COMPLETED
+  DELIVERED
+  CANCELLED
+}
+
+enum QuoteStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  CONVERTED
+}
+
+enum TaskType {
+  DEVELOPMENT
+  DEPLOYMENT
+  TESTING
+  SECURITY_SCAN
+  CODE_REVIEW
+  CLIENT_COMMUNICATION
+  QUOTATION
+  FREELANCE_BIDDING
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum Platform {
+  FREELANCER
+  UPWORK
+  FIVERR
+  GURU
+  PEOPLEPERHOUR
+  DIRECT_CLIENT
+}
+
+model Client {
+  id          String     @id @default(cuid())
+  name        String
+  email       String     @unique
+  company     String?
+  phone       String?
+  website     String?
+  industry    String?
+  budget      Float?     // Typical project budget
+  timezone    String?
+  preferences Json?      // Communication preferences, tech stack preferences
+  isActive    Boolean    @default(true)
+  rating      Float?     // Client rating (1-5 stars)
+  notes       String?    @db.Text
+  projects    Project[]
+  quotations  Quotation[]
+  invoices    Invoice[]
+  jobs        FreelanceJob[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([email])
+  @@index([company])
+}
+
+model Project {
+  id              String        @id @default(cuid())
+  name            String
+  description     String        @db.Text
+  clientId        String
+  client          Client        @relation(fields: [clientId], references: [id])
+  status          ProjectStatus @default(PENDING)
+  techStack       String[]      // Array of technologies
+  estimatedHours  Int
+  quotedPrice     Float
+  actualHours     Int?          // Actual time spent
+  finalPrice      Float?        // Final project price
+  gitRepoUrl      String?
+  liveUrl         String?
+  deploymentUrl   String?
+  repository      String?       // GitHub repo name
+  branch          String?       // Default branch
+  deploymentEnv   String?       // Production, staging, etc.
+  requirements    Json?         // Detailed project requirements
+  milestones      Json?         // Project milestones and deadlines
+  deliverables    Json?         // List of deliverables
+  testingReport   Json?         // QA and testing results
+  securityScan    Json?         // Security audit results
+  performanceData Json?         // Performance metrics
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  // Relations
+  tasks           AgentTask[]
+  invoices        Invoice[]
+  assets          ProjectAsset[]
+  
+  @@index([clientId])
+  @@index([status])
+  @@index([gitRepoUrl])
+}
+
+model Quotation {
+  id            String       @id @default(cuid())
+  clientId      String
+  client        Client       @relation(fields: [clientId], references: [id])
+  projectName   String
+  features      String[]     // Detailed feature list
+  techStack     String[]     // Recommended technology stack
+  timeline      String       // Expected delivery timeline
+  price         Float
+  currency      String       @default("USD")
+  discount      Float?       // Discount percentage
+  taxes         Float?       // Tax amount
+  totalPrice    Float        // Final price after discounts/taxes
+  status        QuoteStatus  @default(DRAFT)
+  validUntil    DateTime     // Quote expiration date
+  notes         String?      @db.Text
+  terms         String?      @db.Text // Terms and conditions
+  scope         String?      @db.Text // Detailed scope of work
+  assumptions   String?      @db.Text // Project assumptions
+  exclusions    String?      @db.Text // What's not included
+  paymentTerms  String?      @db.Text // Payment schedule
+  deliverables  Json?        // List of deliverables
+  timelineBreak Json?        // Detailed timeline breakdown
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  
+  // Relations
+  invoices      Invoice[]
+  
+  @@index([clientId])
+  @@index([status])
+  @@index([validUntil])
+}
+
+model AgentTask {
+  id          String      @id @default(cuid())
+  type        TaskType
+  status      TaskStatus  @default(PENDING)
+  priority    Priority    @default(MEDIUM)
+  title       String
+  description String?     @db.Text
+  agentId     String?     // Which AI agent is handling this
+  assignedTo  String?     // Specific agent instance
+  payload     Json        // Task parameters and data
+  result      Json?       // Task execution results
+  error       String?     @db.Text // Error messages if failed
+  progress    Int         @default(0) // Progress percentage
+  startedAt   DateTime?
+  completedAt DateTime?
+  deadline    DateTime?   // Task deadline
+  projectId   String?
+  project     Project?    @relation(fields: [projectId], references: [id])
+  parentId    String?     // Parent task for subtasks
+  parent      AgentTask?  @relation("TaskDependencies", fields: [parentId], references: [id])
+  children    AgentTask[] @relation("TaskDependencies")
+  logs        TaskLog[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  @@index([type])
+  @@index([status])
+  @@index([priority])
+  @@index([agentId])
+  @@index([projectId])
+  @@index([deadline])
+}
+
+model TaskLog {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      AgentTask @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  action    String   // "STARTED", "PROGRESS", "COMPLETED", "ERROR"
+  message   String   @db.Text
+  data      Json?    // Additional log data
+  createdAt DateTime @default(now())
+  
+  @@index([taskId])
+  @@index([createdAt])
+}
+
+model FreelanceJob {
+  id           String    @id @default(cuid())
+  platform     Platform
+  externalId   String    // Job ID on the platform
+  title        String
+  description  String    @db.Text
+  budget       Float?
+  currency     String    @default("USD")
+  skills       String[]  // Required skills
+  clientId     String?
+  client       Client?   @relation(fields: [clientId], references: [id])
+  status       String    // "ACTIVE", "APPLIED", "WON", "LOST", "EXPIRED"
+  appliedAt    DateTime?
+  responseAt   DateTime?
+  wonAt        DateTime?
+  deadline     DateTime? // Job application deadline
+  requirements Json?     // Detailed requirements
+  proposal     Json?     // Our proposal details
+  contract     Json?     // Contract details if won
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  
+  @@index([platform])
+  @@index([status])
+  @@index([externalId])
+  @@index([clientId])
+}
+
+model Invoice {
+  id            String     @id @default(cuid())
+  invoiceNumber String     @unique
+  clientId      String
+  client        Client     @relation(fields: [clientId], references: [id])
+  projectId     String?
+  project       Project?   @relation(fields: [projectId], references: [id])
+  quotationId   String?
+  quotation     Quotation? @relation(fields: [quotationId], references: [id])
+  amount        Float
+  currency      String     @default("USD")
+  tax           Float      @default(0)
+  discount      Float      @default(0)
+  totalAmount   Float
+  status        String     // "DRAFT", "SENT", "PAID", "OVERDUE", "CANCELLED"
+  issueDate     DateTime   @default(now())
+  dueDate       DateTime
+  paidDate      DateTime?
+  paymentMethod String?
+  paymentRef    String?    // Payment reference/transaction ID
+  notes         String?    @db.Text
+  lineItems     Json?      // Invoice line items
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  
+  @@index([clientId])
+  @@index([projectId])
+  @@index([status])
+  @@index([invoiceNumber])
+}
+
+model ProjectAsset {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  name      String
+  type      String   // "IMAGE", "DOCUMENT", "CODE", "DEPLOYMENT"
+  url       String?  // URL if stored externally
+  path      String?  // File path if stored locally
+  size      Int?     // File size in bytes
+  mimeType  String?
+  metadata  Json?    // Additional metadata
+  createdAt DateTime @default(now())
+  
+  @@index([projectId])
+  @@index([type])
+}
+
+model BusinessMetric {
+  id          String   @id @default(cuid())
+  metric      String   // "REVENUE", "PROJECTS_COMPLETED", "CLIENT_SATISFACTION"
+  value       Float
+  period      String   // "DAILY", "WEEKLY", "MONTHLY", "YEARLY"
+  periodStart DateTime
+  periodEnd   DateTime
+  metadata    Json?    // Additional metric data
+  createdAt   DateTime @default(now())
+  
+  @@index([metric])
+  @@index([period])
+  @@index([periodStart])
+}
+
+model AutomationRule {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  trigger     Json     // Trigger conditions
+  action      Json     // Actions to perform
+  isActive    Boolean  @default(true)
+  priority    Int      @default(0)
+  lastRun     DateTime?
+  runCount    Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([isActive])
+  @@index([priority])
 }
