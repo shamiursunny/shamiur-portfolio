@@ -1,8 +1,10 @@
-// AI Agent Training and Testing System
-// Comprehensive training program for the MCP AI Ecosystem
+// AI Agent Training and Testing System - Complete Implementation
+// Comprehensive training program with Jarvis AI integration
 
 import { MCPCommunicationProtocol, AIAgent, MCPMessage } from '../src/lib/mcp-communication-protocol';
 import { UnifiedIntelligenceCore } from '../src/lib/unified-intelligence-core';
+import * as fs from 'fs';
+import * as path from 'path';
 
 interface TrainingTask {
     id: string;
@@ -19,8 +21,22 @@ interface TrainingScenario {
     name: string;
     description: string;
     tasks: TrainingTask[];
-    duration: number; // in minutes
+    duration: number;
     complexity: 'basic' | 'intermediate' | 'advanced';
+}
+
+interface TrainingResult {
+    scenarioId: string;
+    scenarioName: string;
+    startTime: Date;
+    endTime: Date;
+    duration: number;
+    tasks: any[];
+    performance: any;
+    learning: any;
+    emergentBehaviors: any[];
+    success: boolean;
+    error?: string;
 }
 
 export class AIAgentTrainingSystem {
@@ -28,7 +44,7 @@ export class AIAgentTrainingSystem {
     private unifiedCore: UnifiedIntelligenceCore;
     private trainingScenarios: TrainingScenario[] = [];
     private currentScenario: TrainingScenario | null = null;
-    private trainingHistory: any[] = [];
+    private trainingHistory: TrainingResult[] = [];
     private agentPerformance: Map<string, any> = new Map();
 
     constructor() {
@@ -206,6 +222,44 @@ export class AIAgentTrainingSystem {
                 }
             ]
         });
+
+        // Scenario 4: Jarvis AI Collaborative Learning
+        this.trainingScenarios.push({
+            id: 'jarvis_collaborative_learning',
+            name: 'Jarvis AI Collaborative Learning',
+            description: 'Test collaborative learning between Jarvis AI and other AI models',
+            complexity: 'advanced',
+            duration: 25,
+            tasks: [
+                {
+                    id: 'task_16',
+                    name: 'Knowledge Sharing Session',
+                    description: 'Jarvis AI shares learned patterns with other agents',
+                    assignedAgent: 'jarvis_ai',
+                    priority: 'high',
+                    expectedOutcome: 'Knowledge successfully shared across AI team',
+                    successCriteria: ['Patterns identified', 'Knowledge transferred', 'Learning validated']
+                },
+                {
+                    id: 'task_17',
+                    name: 'Cross-Model Coordination',
+                    description: 'Coordinate complex task across multiple AI models',
+                    assignedAgent: 'business_manager',
+                    priority: 'high',
+                    expectedOutcome: 'Successful multi-agent coordination',
+                    successCriteria: ['Roles defined', 'Communication established', 'Task completed']
+                },
+                {
+                    id: 'task_18',
+                    name: 'Collective Problem Solving',
+                    description: 'Solve complex problem using collective intelligence',
+                    assignedAgent: 'jarvis_ai',
+                    priority: 'high',
+                    expectedOutcome: 'Problem solved through collaborative intelligence',
+                    successCriteria: ['Problem analyzed', 'Solutions generated', 'Best solution selected']
+                }
+            ]
+        });
     }
 
     private setupEventListeners(): void {
@@ -236,7 +290,7 @@ export class AIAgentTrainingSystem {
     }
 
     // ===== TRAINING EXECUTION =====
-    async executeTrainingScenario(scenarioId: string): Promise<any> {
+    async executeTrainingScenario(scenarioId: string): Promise<TrainingResult> {
         const scenario = this.trainingScenarios.find(s => s.id === scenarioId);
         if (!scenario) {
             throw new Error(`Training scenario ${scenarioId} not found`);
@@ -250,14 +304,17 @@ export class AIAgentTrainingSystem {
 
         this.currentScenario = scenario;
         const startTime = Date.now();
-        const results: any = {
+        const results: TrainingResult = {
             scenarioId,
             scenarioName: scenario.name,
             startTime: new Date(),
+            endTime: new Date(),
+            duration: 0,
             tasks: [],
             performance: {},
             learning: {},
-            emergentBehaviors: []
+            emergentBehaviors: [],
+            success: false
         };
 
         try {
@@ -286,9 +343,8 @@ export class AIAgentTrainingSystem {
             results.performance = await this.generatePerformanceReport();
             results.learning = await this.generateLearningReport();
 
-            const endTime = Date.now();
-            results.duration = (endTime - startTime) / 1000; // in seconds
             results.endTime = new Date();
+            results.duration = (Date.now() - startTime) / 1000;
             results.success = true;
 
             console.log(`\n🎉 Training Scenario Completed: ${scenario.name}`);
@@ -298,12 +354,16 @@ export class AIAgentTrainingSystem {
             // Store results in history
             this.trainingHistory.push(results);
 
+            // Save training report alongside AI training data
+            await this.saveTrainingReport(results);
+
             return results;
 
-        } catch (error) {
+        } catch (error: any) {
             console.error(`❌ Training Scenario Failed: ${error}`);
             results.success = false;
             results.error = error.message;
+            results.endTime = new Date();
             return results;
         }
     }
@@ -354,6 +414,15 @@ export class AIAgentTrainingSystem {
                 role: 'specialist',
                 status: 'online',
                 capabilities: ['deployment', 'devops_automation', 'infrastructure', 'monitoring'],
+                masterId: undefined,
+                knowledge: new Map()
+            },
+            {
+                id: 'jarvis_ai',
+                name: 'Jarvis AI (Local Model)',
+                role: 'collaborative_leader',
+                status: 'online',
+                capabilities: ['collaborative_learning', 'knowledge_sharing', 'team_coordination', 'advanced_reasoning'],
                 masterId: undefined,
                 knowledge: new Map()
             }
@@ -435,78 +504,4 @@ export class AIAgentTrainingSystem {
 - Dashboard Component with charts
 - User Profile Component
 - All components follow design system
-- Unit tests included (95% coverage)`,
-            'Quality Assurance Testing': `Test Report Generated:
-- Unit Tests: 150 tests, 95% pass rate
-- Integration Tests: 25 tests, 100% pass rate
-- E2E Tests: 10 tests, 90% pass rate
-- Performance Tests: All metrics within SLA
-- Security Scan: No critical vulnerabilities`,
-            'Deployment Setup': `Deployment Pipeline Configured:
-- CI/CD pipeline with GitHub Actions
-- Automated testing on PR
-- Staging environment deployment
-- Production deployment with blue-green strategy
-- Monitoring and alerting configured`
-        };
-
-        return outputs[task.name] || `Task completed: ${task.description}`;
-    }
-
-    private async monitorLearning(taskResult: any): Promise<void> {
-        // Simulate learning from task execution
-        if (taskResult.status === 'completed') {
-            // Agents learn from successful task completion
-            const learningData = {
-                topic: taskResult.taskName,
-                knowledge: {
-                    taskId: taskResult.taskId,
-                    agentId: taskResult.assignedAgent,
-                    success: true,
-                    duration: taskResult.duration,
-                    output: taskResult.output
-                }
-            };
-
-            await this.unifiedCore.ingestLearning(taskResult.assignedAgent, learningData);
-        }
-    }
-
-    private async checkEmergentBehaviors(taskResult: any): Promise<void> {
-        // Check if any emergent behaviors should be triggered
-        const agentPerformance = this.agentPerformance.get(taskResult.assignedAgent);
-
-        if (agentPerformance && agentPerformance.completedTasks >= 3) {
-            // Simulate emergent behavior detection
-            console.log(`🧠 Potential emergent behavior detected for ${taskResult.assignedAgent}`);
-        }
-    }
-
-    private updateAgentPerformance(agentId: string, taskResult: any): void {
-        if (!this.agentPerformance.has(agentId)) {
-            this.agentPerformance.set(agentId, {
-                completedTasks: 0,
-                failedTasks: 0,
-                totalDuration: 0,
-                averageDuration: 0,
-                successRate: 0
-            });
-        }
-
-        const performance = this.agentPerformance.get(agentId);
-        performance.completedTasks += taskResult.status === 'completed' ? 1 : 0;
-        performance.failedTasks += taskResult.status === 'failed' ? 1 : 0;
-        performance.totalDuration += taskResult.duration;
-        performance.averageDuration = performance.totalDuration / (performance.completedTasks + performance.failedTasks);
-        performance.successRate = performance.completedTasks / (performance.completedTasks + performance.failedTasks) * 100;
-    }
-
-    private async generatePerformanceReport(): Promise<any> {
-        const report: any = {};
-        for (const [agentId, performance] of this.agentPerformance.entries()) {
-            report[agentId] = performance;
-        }
-        return report;
-    }
-
-    private async generateLearningReport
+- Unit tests included (

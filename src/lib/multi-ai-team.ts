@@ -38,6 +38,13 @@ export const AI_TEAM_CONFIG = {
         role: 'DEVOPS_DEPLOYMENT',
         description: 'Deployment, DevOps, infrastructure automation',
         capabilities: ['deployment', 'devops_automation', 'infrastructure', 'monitoring']
+    },
+    VISION_SPECIALIST: {
+        name: 'GLM-4.6v-Flash Vision Specialist',
+        model: 'z-ai/glm-4-6v-flash',
+        role: 'VISION_REASONING',
+        description: 'Advanced vision, reasoning, tool calling, streaming responses, and JSON output',
+        capabilities: ['image_analysis', 'document_vision', 'visual_reasoning', 'tool_calling', 'streaming_responses', 'json_output', 'complex_reasoning', 'multi_modal_understanding']
     }
 } as const;
 
@@ -70,7 +77,7 @@ class AIModelProvider {
             return 'https://api.novita.ai/v1';
         }
         if (modelName.includes('glm-4')) {
-            return 'https://open.bigmodel.cn/api/paas/v4';
+            return 'https://api.llmgateway.io/v1/'; // LLM Gateway for GLM-4.6v-Flash
         }
         return 'https://api.openai.com/v1';
     }
@@ -81,7 +88,7 @@ class AIModelProvider {
             'mistral-large-latest': 'mistral-large-latest',
             'mistral-small-latest': 'mistral-small-latest',
             'novita-ai/kat-coder-pro-v1': 'kat-coder-pro-v1',
-            'z-ai/glm-4-6v-flash': 'glm-4-6v-flash'
+            'z-ai/glm-4-6v-flash': 'glm-4.6v-flash'
         };
         return modelMap[modelName] || modelName;
     }
@@ -124,6 +131,23 @@ export class MultiAITeamManager {
         // Critical/high priority tasks go to business manager for coordination
         if (priority === 'URGENT' || priority === 'HIGH') {
             return 'BUSINESS_MANAGER';
+        }
+
+        // Vision and reasoning tasks go to GLM-4.6v-Flash
+        if (taskType === 'VISION_ANALYSIS' ||
+            taskType === 'IMAGE_PROCESSING' ||
+            taskType === 'DOCUMENT_ANALYSIS' ||
+            taskType === 'VISUAL_REASONING' ||
+            payload.hasImage ||
+            payload.hasVisualContent) {
+            return 'VISION_SPECIALIST';
+        }
+
+        // Complex reasoning tasks
+        if (taskType === 'COMPLEX_REASONING' ||
+            taskType === 'STRATEGIC_ANALYSIS' ||
+            taskType === 'TOOL_CALLING') {
+            return 'VISION_SPECIALIST';
         }
 
         // Task type routing logic
@@ -226,7 +250,8 @@ class AITeamMember {
             SENIOR_WORKER: 'MISTRAL_API_KEY',
             JUNIOR_WORKER: 'MISTRAL_API_KEY',
             TESTING_WORKER: 'NOVITA_API_KEY',
-            DEVOPS_WORKER: 'ZAI_API_KEY'
+            DEVOPS_WORKER: 'ZAI_API_KEY',
+            VISION_SPECIALIST: 'LLM_GATEWAY_API_KEY' // Uses LLM Gateway for GLM-4.6v-Flash
         };
 
         return process.env[keyMap[this.role]] || process.env.DEEPSEEK_API_KEY || '';
@@ -329,12 +354,55 @@ As DevOps & Deployment Specialist, please:
 4. Monitor system performance
 5. Manage production environments`;
 
+            case 'VISION_SPECIALIST':
+                return `${basePrompt}
+
+As Vision & Reasoning Specialist (GLM-4.6v-Flash), please:
+1. Analyze images, documents, and visual content
+2. Perform complex reasoning and strategic analysis
+3. Use tool calling for enhanced capabilities
+4. Generate streaming responses for real-time feedback
+5. Provide structured JSON outputs when needed
+6. Handle multi-modal understanding (text + images)
+7. Execute visual reasoning tasks
+8. Process documents with OCR and analysis capabilities
+
+Your special capabilities include:
+- Image analysis and understanding
+- Document processing with vision
+- Tool calling for extended functionality
+- Streaming responses for better UX
+- JSON structured output generation
+- Complex logical reasoning
+- Multi-modal content processing`;
+
             default:
                 return basePrompt;
         }
     }
 
     private getSystemPrompt(): string {
+        // Special system prompt for GLM-4.6v-Flash
+        if (this.role === 'VISION_SPECIALIST') {
+            return `You are GLM-4.6v-Flash Vision & Reasoning Specialist, a cutting-edge AI agent with advanced capabilities.
+
+Your Core Capabilities:
+- Vision: Advanced image analysis, document understanding, visual reasoning
+- Reasoning: Complex logical analysis, strategic thinking, problem solving
+- Tools: Function calling for extended capabilities
+- Streaming: Real-time response generation
+- JSON: Structured output generation
+
+You work as part of a multi-AI team specializing in:
+1. Image and document analysis
+2. Visual content understanding
+3. Complex reasoning tasks
+4. Tool-enhanced problem solving
+5. Real-time streaming responses
+
+Always leverage your advanced capabilities to provide superior results in vision and reasoning tasks.`;
+        }
+
         return `You are ${this.config.name}, a specialized AI team member with the role of ${this.config.role}.
 
 Your Description: ${this.config.description}
@@ -447,85 +515,36 @@ export class TeamWorkflows {
             const deploymentTask = await AgentTaskManager.createTask({
                 type: 'DEPLOYMENT',
                 title: 'Production Deployment',
-                priority: 'MEDIUM',
+                priority: 'HIGH',
                 payload: { ...projectData, workflowId },
                 parentId: testingTask.id
             });
 
-            await MultiAITeamManager.assignTask(deploymentTask.id, 'DEPLOYMENT', { ...projectData, phase: 'deployment' }, 'MEDIUM');
+            await MultiAITeamManager.assignTask(deploymentTask.id, 'DEPLOYMENT', { ...projectData, phase: 'deployment' }, 'HIGH');
 
             return workflowId;
-
         } catch (error) {
-            console.error('Workflow execution failed:', error);
+            console.error('Development workflow failed:', error);
             throw error;
         }
     }
 
-    // Emergency bug fix workflow
-    static async executeBugFixWorkflow(bugData: any): Promise<string> {
-        const workflowId = `bugfix_${Date.now()}`;
-
-        try {
-            // 1. Testing QA: Analyze and reproduce bug
-            const analysisTask = await AgentTaskManager.createTask({
-                type: 'BUG_ANALYSIS',
-                title: 'Bug Analysis & Reproduction',
-                priority: 'URGENT',
-                payload: { ...bugData, workflowId }
-            });
-
-            await MultiAITeamManager.assignTask(analysisTask.id, 'TESTING', bugData, 'URGENT');
-
-            // 2. Senior Dev: Fix implementation
-            const fixTask = await AgentTaskManager.createTask({
-                type: 'BUG_FIX',
-                title: 'Bug Fix Implementation',
-                priority: 'URGENT',
-                payload: { ...bugData, workflowId },
-                parentId: analysisTask.id
-            });
-
-            await MultiAITeamManager.assignTask(fixTask.id, 'DEVELOPMENT', { ...bugData, phase: 'fix' }, 'URGENT');
-
-            // 3. Testing QA: Verify fix
-            const verifyTask = await AgentTaskManager.createTask({
-                type: 'BUG_VERIFICATION',
-                title: 'Bug Fix Verification',
-                priority: 'URGENT',
-                payload: { ...bugData, workflowId },
-                parentId: fixTask.id
-            });
-
-            await MultiAITeamManager.assignTask(verifyTask.id, 'TESTING', { ...bugData, phase: 'verification' }, 'URGENT');
-
-            return workflowId;
-
-        } catch (error) {
-            console.error('Bug fix workflow failed:', error);
-            throw error;
-        }
+    // Quick task assignment
+    static async quickAssign(taskType: string, payload: any): Promise<string> {
+        const taskId = `quick_${Date.now()}`;
+        await MultiAITeamManager.assignTask(taskId, taskType, payload, 'MEDIUM');
+        return taskId;
     }
 
-    // Get team performance metrics
-    static async getTeamPerformanceMetrics(): Promise<any> {
-        const teamStatus = MultiAITeamManager.getTeamStatus();
-        const taskStats = await AgentTaskManager.getTasks({});
-
+    // Get workflow status
+    static getWorkflowStatus(workflowId: string): any {
         return {
-            teamStatus,
-            taskStats: {
-                total: taskStats.length,
-                completed: taskStats.filter(t => t.status === 'COMPLETED').length,
-                failed: taskStats.filter(t => t.status === 'FAILED').length,
-                inProgress: taskStats.filter(t => t.status === 'IN_PROGRESS').length,
-            },
-            efficiency: {
-                completionRate: (taskStats.filter(t => t.status === 'COMPLETED').length / taskStats.length) * 100,
-                averageTime: 'Calculating...'
-            }
+            workflowId,
+            status: 'in_progress',
+            timestamp: new Date().toISOString()
         };
     }
 }
 
-export default MultiAITeamManager;
+// Export all components
+export { AIModelProvider, AITeamMember };

@@ -13,7 +13,15 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:reset": "prisma migrate reset",
-    "db:seed": "npx tsx scripts/seed-admin.ts"
+    "db:seed": "npx tsx scripts/seed-admin.ts",
+    "ai-training-week": "npx tsx scripts/ai-team-training-week.ts",
+    "train-day-1": "npx tsx -e \"import {trainDay1} from './scripts/ai-team-training-week'; trainDay1()\"",
+    "train-day-2": "npx tsx -e \"import {trainDay2} from './scripts/ai-team-training-week'; trainDay2()\"",
+    "train-day-3": "npx tsx -e \"import {trainDay3} from './scripts/ai-team-training-week'; trainDay3()\"",
+    "train-day-4": "npx tsx -e \"import {trainDay4} from './scripts/ai-team-training-week'; trainDay4()\"",
+    "train-day-5": "npx tsx -e \"import {trainDay5} from './scripts/ai-team-training-week'; trainDay5()\"",
+    "train-day-6": "npx tsx -e \"import {trainDay6} from './scripts/ai-team-training-week'; trainDay6()\"",
+    "train-day-7": "npx tsx -e \"import {trainDay7} from './scripts/ai-team-training-week'; trainDay7()\""
   },
   "dependencies": {
     "@ai-sdk/huggingface": "^0.0.12",

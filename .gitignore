@@ -47,3 +47,4 @@ test
 prompt
 
 server.log
+.env*.local
