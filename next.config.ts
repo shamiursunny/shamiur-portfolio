@@ -2,6 +2,9 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
+  // Enable standalone output for Docker containerization
+  output: 'standalone',
+
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -19,6 +22,11 @@ const nextConfig: NextConfig = {
   eslint: {
     // 构建时忽略ESLint错误
     ignoreDuringBuilds: true,
+  },
+  // Docker-specific optimizations
+  experimental: {
+    // Enable standalone mode optimizations
+    serverExternalPackages: [],
   },
 };
 

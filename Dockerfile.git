@@ -1,0 +1,47 @@
+# Git Management Container - Handles all Git operations and environment management
+FROM alpine:latest
+
+# Install git, openssh, and other tools
+RUN apk add --no-cache \
+    git \
+    openssh-client \
+    bash \
+    curl \
+    docker \
+    docker-compose \
+    jq \
+    cron \
+    python3 \
+    py3-pip \
+    && pip3 install --no-cache-dir docker-py
+
+# Create app directory
+WORKDIR /app
+
+# Copy scripts
+COPY scripts/ /app/scripts/
+
+# Make scripts executable
+RUN chmod +x /app/scripts/*.sh
+
+# Create necessary directories
+RUN mkdir -p /app/repos /app/backups /app/logs /root/.ssh
+
+# Configure Git
+RUN git config --global user.name "Docker Git Manager" && \
+    git config --global user.email "docker@shamiur.ai" && \
+    git config --global init.defaultBranch main
+
+# Add SSH key configuration (optional - for private repos)
+RUN echo "Host github.com\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile /dev/null" >> /root/.ssh/config
+
+# Copy entrypoint script
+COPY scripts/git-manager.sh /app/git-manager.sh
+RUN chmod +x /app/git-manager.sh
+
+# Health check
+HEALTHCHECK --interval=60s --timeout=10s --start-period=30s --retries=3 \
+  CMD git --version && echo "Git manager healthy"
+
+# Default command
+CMD ["/app/git-manager.sh"]

@@ -1,0 +1,89 @@
+version: '3.8'
+
+services:
+  # Main portfolio application
+  portfolio:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runner
+    container_name: shamiur-portfolio
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_TELEMETRY_DISABLED=1
+    env_file:
+      - .env
+    volumes:
+      - ./logs:/app/logs
+      - portfolio-logs:/app/logs:rw
+    depends_on:
+      - git-manager
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) }).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Git Management Service
+  git-manager:
+    build:
+      context: .
+      dockerfile: Dockerfile.git
+    container_name: git-manager
+    environment:
+      - GIT_REPO_URL=https://github.com/shamiursunny/shamiur.ai.git
+      - BACKUP_INTERVAL=3600
+      - DOCKER_HUB_USER=${DOCKER_HUB_USER}
+      - DOCKER_HUB_TOKEN=${DOCKER_HUB_TOKEN}
+    volumes:
+      - ./git-repos:/app/repos
+      - ./backups:/app/backups
+      - ./scripts:/app/scripts
+      - ~/.ssh:/root/.ssh:ro
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+    command: ["/app/scripts/git-manager.sh"]
+
+  # Development database (SQLite in volume)
+  db:
+    image: alpine:latest
+    container_name: portfolio-db
+    volumes:
+      - portfolio-db:/app/db
+    networks:
+      - portfolio-network
+    command: ["sh", "-c", "mkdir -p /app/db && tail -f /dev/null"]
+
+  # Backup service
+  backup-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.backup
+    container_name: backup-service
+    environment:
+      - DOCKER_HUB_USER=${DOCKER_HUB_USER}
+      - DOCKER_HUB_TOKEN=${DOCKER_HUB_TOKEN}
+      - BACKUP_RETENTION_DAYS=30
+    volumes:
+      - ./backups:/app/backups
+      - portfolio-db:/app/db:ro
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+
+volumes:
+  portfolio-db:
+    driver: local
+  portfolio-logs:
+    driver: local
+
+networks:
+  portfolio-network:
+    driver: bridge

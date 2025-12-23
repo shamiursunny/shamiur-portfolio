@@ -515,4 +515,10 @@ export class AIModelsRolesIntegration {
                 availableModels: models.length,
                 requiredModels: role.primaryModels.length,
                 health: models.length >= role.primaryModels.length ? 'healthy' :
-                    models.length > 0 ?
+                    models.length > 0 ? 'partial' : 'unhealthy'
+            };
+        }
+
+        return rolesHealth;
+    }
+}
